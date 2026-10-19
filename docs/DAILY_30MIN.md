@@ -1,8 +1,10 @@
 # 30 minutes/day — step-by-step plan
 
-**Companion:** [phases.md](./phases.md) (Phase 0–7 explainers) · [ROADMAP.md](./ROADMAP.md) · [README.md](./README.md) (start server)
+**Companion:** [COVERAGE.md](./COVERAGE.md) (all topics ✅) · [TOPIC_SEQUENCE.md](./TOPIC_SEQUENCE.md) · [phases.md](./phases.md) · [ROADMAP.md](./ROADMAP.md)
 
-**Default language:** Python 3.11+ (change any day to TypeScript if you prefer—keep one language for Days 8–60).
+Topics follow **Phase 0 → 1 → 2 → 3 → 4 → 5**: bootstrap → SLM & client → context & RAG → tools & orchestration → IDE → production.
+
+**Default language:** Python 3.11+
 
 ---
 
@@ -10,246 +12,237 @@
 
 | Block | Time | Do this |
 |-------|------|---------|
-| **Warm-up** | 5 min | Re-read yesterday’s journal line; start server if needed (`docs/README.md`). |
-| **Hands-on** | 22 min | Exactly one day’s task below—stop when the timer ends. |
-| **Close-out** | 3 min | `docs/journal/YYYY-MM-DD.md`: one sentence *what I did*, one *what confused me*. Optional: commit & push ([GITHUB.md](./GITHUB.md)). |
-
-**Rules**
-
-- Miss a day → do **not** skip ahead two days; resume at the next number.
-- Stuck &gt; 10 min → write the blocker in journal, do the “minimum” bullet for that day, move on.
-- **Sunday (optional):** 30 min review only—re-run last week’s demo, update [MILESTONES](./journal/MILESTONES.md).
+| **Warm-up** | 5 min | Yesterday’s journal; start server if needed. |
+| **Hands-on** | 22 min | One day below—stop when timer ends. |
+| **Close-out** | 3 min | `docs/journal/YYYY-MM-DD.md` + optional [push](./GITHUB.md). |
 
 ---
 
 ## Before Day 1
 
-- [ ] Server works: `curl http://127.0.0.1:8080/health` → `{"status":"ok"}`
-- [ ] Create folder: `docs/journal/`
-- [ ] Pick capstone track from ROADMAP (you can change later)
+- [ ] `curl http://127.0.0.1:8080/health` → `{"status":"ok"}`
+- [ ] `docs/journal/` exists
+- [ ] Capstone track chosen ([ROADMAP](./ROADMAP.md))
 
 ---
 
-## Week 1 — Runtime & API (Phase 0)
+## Phase 0 — Bootstrap (Days 1–7)
 
-| Day | Hands-on (22 min) | Done signal |
-|-----|-------------------|-------------|
-| **1** | Start/stop server once. Run `/health` and `/v1/models`. In journal, define *token* and *context* in your own words. | Two curl outputs pasted in journal |
-| **2** | Non-streaming chat with `curl` (README example). Save full JSON to `experiments/day02-response.json`. Note `usage` fields. | File saved |
-| **3** | Streaming completion (`stream: true`). Watch tokens in terminal. Count roughly how many seconds to first token. | One-line timing in journal |
-| **4** | Same question at `temperature` 0 vs 1 (if supported) or rephrase system prompt “be terse” vs “be verbose”. Compare. | Short comparison note |
-| **5** | Send a prompt longer than ~3000 tokens (paste a long article). Observe truncate/error. Read `-c 4096` in README. | Know your context limit behavior |
-| **6** | Read `docs/ROADMAP.md` “Decide first” table. For your capstone, write which row you’ll need first (RAG, workflow, etc.). | 3 bullets in journal |
-| **7** | **Review:** Run Days 2–3 demos in &lt; 5 min without notes. Fix anything broken. | Clean demo |
+| Day | Topic | Hands-on (22 min) | Done |
+|-----|--------|-------------------|------|
+| **1** | Server & API | `/health`, `/v1/models`; define token & context in journal | Journal |
+| **2** | Chat JSON | Non-streaming `curl`; save `experiments/day02-response.json`; note `usage` | File |
+| **3** | Streaming | `stream: true`; time to first token | Timing note |
+| **4** | Sampling preview | Terse vs verbose system prompt (temp 0 vs 1 if supported) | Compare |
+| **5** | Context limit | Long prompt vs `-c 4096` | Behavior known |
+| **6** | Roadmap | “Decide first” table + capstone needs | 3 bullets |
+| **7** | Review | Repeat Days 2–3 in &lt; 5 min | Demo |
 
----
-
-## Week 2 — First client (Phase 1)
-
-| Day | Hands-on (22 min) | Done signal |
-|-----|-------------------|-------------|
-| **8** | `mkdir -p tools/llm_client experiments`. `uv init` or `python -m venv .venv` + `pip install httpx`. | Project exists |
-| **9** | `health()` → GET `/health`. Handle connection error with clear message. | `python -c "from tools.llm_client..."` works |
-| **10** | `chat(messages)` → POST `/v1/chat/completions`, return assistant text. 30s timeout. | One-shot question works |
-| **11** | `stream_chat(messages)` print deltas. | Streaming in terminal |
-| **12** | Env vars: `LLM_BASE_URL` default `http://127.0.0.1:8080/v1`. | Document in `tools/llm_client/README.md` (5 lines) |
-| **13** | Mock test: patch `httpx` so CI needs no server. One test file, one test. | `pytest` passes offline |
-| **14** | **Review:** CLI `python experiments/01_hello_chat.py "hi"` using your client. | Demo |
+→ [phase0.md](./phase0.md)
 
 ---
 
-## Week 3 — Prompts as code (Phase 2)
+## Phase 1 — SLMs & client (Days 8–21)
 
-| Day | Hands-on (22 min) | Done signal |
-|-----|-------------------|-------------|
-| **15** | `tools/prompts/classify_v1.md` — system prompt: intent ∈ {question, task, chitchat}. | File committed |
-| **16** | Call model; parse answer with regex or “first line only”. Log failures. | 5 manual test phrases in journal |
-| **17** | Ask for **JSON only** `{ "intent": "...", "confidence": 0.0 }`. | Raw output saved |
-| **18** | Add Pydantic model + `parse_json_from_llm()` with one retry on validation error. | Invalid JSON recovered once |
-| **19** | `tools/prompts/extract_v1.md` — extract `{ "actions": ["..."] }` from a note. | 3 test notes |
-| **20** | Version bump `classify_v2.md`; change one instruction; re-run same 5 phrases; note diffs. | Prompt changelog line |
-| **21** | **Review:** `experiments/02_classify.py` reads stdin, prints JSON. | Script runs |
+| Day | Topic | Hands-on (22 min) | Done |
+|-----|--------|-------------------|------|
+| **8** | GGUF & quantization | Read [phase1 §1](./phase1.md); journal: GGUF vs AWQ/GPTQ vs EXL2 | Table |
+| **9** | Quant in practice | Why Q4_K_M for Qwen3 1.7B; disk vs quality tradeoff | Note |
+| **10** | Memory budget | Formula `Params×Bits/8`; estimate 1.7B Q4 vs 7B Q4 | Numbers |
+| **11** | KV-cache | How `-c 4096` adds RAM beyond weights | Paragraph |
+| **12** | llama.cpp | Re-read [README](./README.md) flags; one flag you hadn’t tried | Note |
+| **13** | Other local runtimes | Skim Ollama or LM Studio (install optional); compare to llama-server | Compare |
+| **14** | Prod engines | Journal: when teams use vLLM / TGI / SGLang | 1 paragraph each |
+| **15** | Top-P / Top-K / Min-P | Same prompt, two settings via `curl` or client | Saved outputs |
+| **16** | Thinking models | Qwen3 concise instruction; repetition penalty if looping | Fix note |
+| **17** | Client setup | `mkdir -p tools/llm_client experiments`; venv + `httpx` | Project |
+| **18** | `health()` | GET `/health`; clear error if down | Works |
+| **19** | `chat()` | POST completions; 30s timeout | One-shot OK |
+| **20** | `stream_chat()` + env | Streaming; `LLM_BASE_URL` in mini README | Stream OK |
+| **21** | Tests & review | Mock `httpx` pytest; `experiments/01_hello_chat.py` | Demo |
 
----
-
-## Week 4 — Structured tasks & golden files (Phase 2)
-
-| Day | Hands-on (22 min) | Done signal |
-|-----|-------------------|-------------|
-| **22** | `evals/sets/intent_golden.jsonl` — 10 lines `{input, expected_intent}`. | File exists |
-| **23** | Script: run classifier on all 10; print accuracy %. | Baseline score in journal |
-| **24** | Add 2 “adversarial” examples (ambiguous). Document wrong answers. | Notes |
-| **25** | System prompt rule: “if unsure, intent=question, confidence&lt;0.5”. Re-score. | New accuracy |
-| **26** | Read ROADMAP Phase 6 skim. Add `prompt_hash` or `prompt_version` to script output. | Traceable run |
-| **27** | Capstone: write 5 real user messages you’d want your app to handle. | `data/capstone_samples.txt` |
-| **28** | **Review:** Week 3–4 accuracy ≥ previous week or you know why not. | Journal |
+→ [phase1.md](./phase1.md)
 
 ---
 
-## Week 5 — Tool loop (Phase 3)
+## Phase 2A — Context engineering (Days 22–35)
 
-| Day | Hands-on (22 min) | Done signal |
-|-----|-------------------|-------------|
-| **29** | `tools/registry.py`: `register(name, fn, json_schema)`. One tool: `add(a,b)`. | Registry works |
-| **30** | Manual loop: you paste model JSON tool call → code runs → you paste result back. Learn the shape. | Diagram in journal |
-| **31** | Implement `run_tool_loop()` max 5 steps with logging to `logs/traces/day31.jsonl`. | Trace file |
-| **32** | Tool `read_file(path)` — only under `data/`, reject `..`. | Path test |
-| **33** | Tool `list_dir(path)` same sandbox. | Two tools |
-| **34** | Prompt: “use tools when needed.” Run: “what files are in data?” | Successful tool use |
-| **35** | **Review:** Replay trace; explain each step aloud in 2 min. | Review done |
+| Day | Topic | Hands-on (22 min) | Done |
+|-----|--------|-------------------|------|
+| **22** | Prompt files | `tools/prompts/classify_v1.md` intents | File |
+| **23** | Parse v1 | 5 manual phrases; log parse failures | Journal |
+| **24** | JSON output | `{intent, confidence}` only | Raw saved |
+| **25** | Pydantic + retry | `parse_json_from_llm()` one retry | Recovered once |
+| **26** | Extractor prompt | `extract_v1.md` → actions list; 3 notes | 3 tests |
+| **27** | Prompt versioning | `classify_v2.md`; changelog; re-run 5 phrases | Diff note |
+| **28** | Classify CLI | `experiments/02_classify.py` stdin → JSON | Runs |
+| **29** | Golden set | `evals/sets/intent_golden.jsonl` × 10 | File |
+| **30** | Baseline accuracy | Script scores 10; % in journal | Score |
+| **31** | Adversarial cases | +2 ambiguous; document errors | Notes |
+| **32** | Low-confidence rule | Re-prompt rule; re-score | New score |
+| **33** | Trace version | `prompt_version` on eval output | Traceable |
+| **34** | Capstone samples | `data/capstone_samples.txt` × 5 | File |
+| **35** | Review | Week 22–34; accuracy trend | Journal |
 
----
-
-## Week 6 — Tools + safety (Phase 3)
-
-| Day | Hands-on (22 min) | Done signal |
-|-----|-------------------|-------------|
-| **36** | Log tool name, args, duration, result length every call. | Structured logs |
-| **37** | Deny list: `run_shell` not registered; model asks anyway → return error observation. | Safe failure |
-| **38** | `git_status` read-only tool (subprocess `git -C repo status -sb`). | Real output |
-| **39** | `apps/tool_runner/repl.py` — simple chat + print tool trace. | REPL session |
-| **40** | Read MCP overview (ROADMAP resources). List 3 tools you’d expose via MCP later. | Journal bullets |
-| **41** | Harden: max result size 8KB truncate with message. | Test truncate |
-| **42** | **Review:** 3-turn conversation using ≥2 tools. | Demo |
+→ [phase2.md](./phase2.md) §1–2
 
 ---
 
-## Week 7 — RAG ingest (Phase 4)
+## Phase 2B — RAG (Days 36–56)
 
-| Day | Hands-on (22 min) | Done signal |
-|-----|-------------------|-------------|
-| **43** | `data/corpus/` — copy `docs/*.md` + 2 personal notes. | Corpus folder |
-| **44** | Chunker: 500 chars, overlap 50, store `{text, source, chunk_id}`. | `data/chunks.jsonl` |
-| **45** | Pick embedding: local model or API; embed 10 chunks test. | Vectors exist |
-| **46** | In-memory index: cosine top-3 for one query. | Print 3 sources |
-| **47** | `tools/rag/ingest.py` CLI rebuild index. | One command ingest |
-| **48** | Embed full corpus; save index to `data/index/` (pickle/sqlite/numpy). | Persisted index |
-| **49** | **Review:** Re-ingest after editing one doc; confirm chunk count changes. | Verified |
+| Day | Topic | Hands-on (22 min) | Done |
+|-----|--------|-------------------|------|
+| **36** | Corpus | `data/corpus/` ← `docs/*.md` + 2 notes | Folder |
+| **37** | Chunking strategies | Fixed 500/overlap 50 → `chunks.jsonl`; journal: semantic, parent-doc, sliding window | Chunks + table |
+| **38** | Embeddings & vector DBs | Embed 10 chunks; journal: Chroma vs Qdrant vs pgvector vs Pinecone | Vectors + compare |
+| **39** | Vector search | Cosine top-3 one query | 3 sources |
+| **40** | Ingest CLI | `tools/rag/ingest.py` rebuild | Command |
+| **41** | Persist index | Save under `data/index/` | Index |
+| **42** | Ingest review | Edit doc; re-ingest; count Δ | Verified |
+| **43** | `retrieve()` | Top 5 + scores | Function |
+| **44** | Citations prompt | `answer_with_citations()` template | Template |
+| **45** | Answerable Qs | 3 Q&A with correct source paths | Journal |
+| **46** | Refusal | 1 OOD question → “don’t know” | Honest |
+| **47** | RAG on/off | Same Q with/without retrieval | Compare |
+| **48** | Ask CLI | `apps/ask_my_docs/cli.py` | CLI |
+| **49** | RAG mini-eval | 5 Qs; manual citation score % | Score |
+| **50** | Hybrid search | Add BM25 or keyword fallback (simple) | Hybrid |
+| **51** | Re-rank | Skim BGE/Cohere rerank; try or document skip | Note |
+| **52** | GraphRAG intro | Read phase2 §Graph; list entities from 1 doc | Entity list |
+| **53** | Graph stretch | NetworkX edges optional OR journal plan | Plan |
+| **54** | `rag_qa.jsonl` | 5 eval cases for RAG | File |
+| **55** | Wire RAG eval | Script checks citation substring | Script |
+| **56** | Phase 2 review | Demo: classify + ask docs | Demo |
 
----
-
-## Week 8 — RAG answers (Phase 4)
-
-| Day | Hands-on (22 min) | Done signal |
-|-----|-------------------|-------------|
-| **50** | `retrieve(query)` → top 5 chunks with scores. | Function done |
-| **51** | Prompt template: context blocks + “cite source path”. | `answer_with_citations()` |
-| **52** | Ask 3 questions answerable from corpus. Check citations correct. | 3 Q&A in journal |
-| **53** | Ask 1 question **not** in corpus. Prompt: say “I don’t know”. | Honest refusal |
-| **54** | Compare same question with RAG off vs on. | Comparison |
-| **55** | `apps/ask_my_docs/cli.py` one-shot: `ask "..."`. | CLI |
-| **56** | **Review:** 5-question mini eval; score citations manually. | Score % |
-
----
-
-## Week 9 — Workflows (Phase 5)
-
-| Day | Hands-on (22 min) | Done signal |
-|-----|-------------------|-------------|
-| **57** | Draw states: `RECEIVED → CLASSIFY → RETRIEVE → DRAFT → DONE` on paper/`docs/journal/`. | Diagram |
-| **58** | `apps/agent_lab/workflow.py` — dataclass `RunState`, pure functions per step. | Code skeleton |
-| **59** | CLASSIFY uses your Phase 2 JSON classifier. | Wired |
-| **60** | RETRIEVE calls RAG if intent=question. | Wired |
-| **61** | DRAFT calls `chat()` with retrieved context. | End-to-end dry run |
-| **62** | Persist `checkpoints/{run_id}.json` after each step. | File per run |
-| **63** | **Review:** Run twice; show two checkpoint files. | Demo |
+→ [phase2.md](./phase2.md) §3–6
 
 ---
 
-## Week 10 — Agents & hybrid (Phase 5)
+## Phase 3A — Tools (Days 57–70)
 
-| Day | Hands-on (22 min) | Done signal |
-|-----|-------------------|-------------|
-| **64** | `agent_loop.py`: ReAct, max 8 steps, read-only tools only. | Agent runs |
-| **65** | Task: “summarize all files in data/corpus/” via agent. | Markdown output |
-| **66** | Add `human_approve` step in workflow before any `write_file` tool. | Gate works |
-| **67** | Hybrid: workflow step calls `run_agent(goal=...)` returns JSON summary. | Handoff schema |
-| **68** | Crash test: kill mid-run; resume from checkpoint (document limitation if not implemented). | Journal note |
-| **69** | `logs/traces/` jsonl per session with `run_id`, `step`, `tokens`. | Trace |
-| **70** | **Review:** Explain workflow vs agent for your capstone in 5 sentences. | Journal |
+| Day | Topic | Hands-on (22 min) | Done |
+|-----|--------|-------------------|------|
+| **57** | Registry | `register()` + `add(a,b)` | Works |
+| **58** | Tool shape | Manual paste loop; diagram in journal | Diagram |
+| **59** | `run_tool_loop()` | Max 5 steps; `logs/traces/day59.jsonl` | Trace |
+| **60** | `read_file` | Sandbox under `data/`; block `..` | Test |
+| **61** | `list_dir` | Same sandbox | 2 tools |
+| **62** | Tool use chat | “What files in data?” | Success |
+| **63** | Structured logs | Name, args, duration, result len | Logs |
+| **64** | Deny shell | Unregistered tool → error observation | Safe |
+| **65** | `git_status` | Read-only subprocess | Real output |
+| **66** | REPL | `apps/tool_runner/repl.py` + trace | Session |
+| **67** | MCP | Read MCP docs; 3 future tools | Bullets |
+| **68** | Truncate | Max 8KB tool result | Test |
+| **69** | Multi-tool | 3-turn, ≥2 tools | Demo |
+| **70** | Review | Replay trace aloud | Done |
 
----
-
-## Week 11 — Evals & observability (Phase 6)
-
-| Day | Hands-on (22 min) | Done signal |
-|-----|-------------------|-------------|
-| **71** | `evals/run_eval.py` runs intent golden set; exits 1 if accuracy &lt; 80%. | Script |
-| **72** | RAG eval: 5 questions, assert citation path substring. | 5 cases |
-| **73** | Tag runs: `--tag day73`; append results to `evals/history.csv`. | History |
-| **74** | One LLM-as-judge optional: “is citation relevant?” on 3 cases—note bias risk. | Short write-up |
-| **75** | Before changing prompt, run eval; after change, run again. | Two scores |
-| **76** | Read trace from Week 10; find longest step. | Optimization idea |
-| **77** | **Review:** Single command `evals/run_all.sh` (or makefile target). | One command |
+→ [phase3.md](./phase3.md) §1–2
 
 ---
 
-## Week 12 — Skills (Phase 8)
+## Phase 3B — Orchestration (Days 71–84)
 
-| Day | Hands-on (22 min) | Done signal |
-|-----|-------------------|-------------|
-| **78** | `skills/classify-intent/SKILL.md` — frontmatter, steps, output schema. | Skill file |
-| **79** | `skills/ask-docs-rag/SKILL.md` + link to ingest CLI. | Second skill |
-| **80** | `skills/classify-intent/evals.yaml` — 5 cases. | Mini eval |
-| **81** | Router: keyword or tiny prompt picks skill from user message. | `route(message)` |
-| **82** | Skill invokes only allowed tools from registry. | Allowlist |
-| **83** | Bump `skill_version`; re-run skill evals. | Version note |
-| **84** | **Review:** Run router → skill → answer for 3 inputs. | Demo |
+| Day | Topic | Hands-on (22 min) | Done |
+|-----|--------|-------------------|------|
+| **71** | Workflow diagram | `CLASSIFY→RETRIEVE→DRAFT→DONE` | Drawing |
+| **72** | `RunState` | `apps/agent_lab/workflow.py` skeleton | Code |
+| **73** | Classify step | Wire Phase 2 classifier | Wired |
+| **74** | Retrieve step | RAG if intent=question | Wired |
+| **75** | Draft step | `chat()` + context | E2E dry run |
+| **76** | Checkpoints | `checkpoints/{run_id}.json` per step | Files |
+| **77** | Workflow review | Two runs, two checkpoints | Demo |
+| **78** | ReAct agent | `agent_loop.py` max 8; read-only tools | Runs |
+| **79** | Research task | Summarize `data/corpus/` | Markdown |
+| **80** | Human approve | Gate before `write_file` | Gate |
+| **81** | Hybrid | Workflow calls `run_agent()` → JSON | Handoff |
+| **82** | Crash test | Kill mid-run; resume or document gap | Note |
+| **83** | Session traces | jsonl: `run_id`, step, tokens | Trace |
+| **84** | Review | Workflow vs agent — 5 sentences | Journal |
 
----
-
-## Weeks 13–14 — Training optional (Phase 7)
-
-Skip this block if Week 4 accuracy is already good enough for your task.
-
-| Day | Hands-on (22 min) | Done signal |
-|-----|-------------------|-------------|
-| **85** | Export 50 best `(input, output)` rows from traces + golden set → `training/datasets/intent.jsonl`. | Dataset |
-| **86** | Document baseline eval score in `training/README.md`. | Baseline |
-| **87** | Follow one LoRA tutorial (Unsloth/MLX/HF)—**do not** finish train today; env ready only. | Env works |
-| **88** | Train smallest run (1 epoch, tiny subset) OR simulate with notebook cells documented. | Artifact or notes |
-| **89** | Read export GGUF path for your stack; list steps you’d run. | Checklist |
-| **90** | Decision doc: train vs prompt for *your* capstone (1 page). | `docs/journal/training-decision.md` |
-| **91** | **Review:** ROADMAP milestone checklist update. | MILESTONES.md |
+→ [phase3.md](./phase3.md) §3–5
 
 ---
 
-## After Day 84 (or 91)
+## Phase 4 — IDE & skills (Days 85–91)
 
-**Capstone sprint** (still 30 min/day):
+| Day | Topic | Hands-on (22 min) | Done |
+|-----|--------|-------------------|------|
+| **85** | Project rules | `.cursor/rules` or `AGENTS.md` for this repo | Committed |
+| **86** | Skill 1 | `skills/classify-intent/SKILL.md` | File |
+| **87** | Skill 2 | `skills/ask-docs-rag/SKILL.md` | File |
+| **88** | Skill evals | `evals.yaml` × 5 cases | Cases |
+| **89** | Router | `route(message)` → skill | Router |
+| **90** | Tool allowlist | Skill → registry subset | Allowlist |
+| **91** | IDE review | Router → skill → answer × 3; test-fix loop journal | Demo |
 
-1. **Week A:** Scope one feature from your capstone track; user story + acceptance tests.
-2. **Week B:** Implement using workflow + RAG + skills you built.
-3. **Week C:** Eval gate + README for users.
-4. **Week D:** Polish; use it yourself 3 times; fix top annoyance.
-
----
-
-## Quick reference — which phase?
-
-| Days | Phase |
-|------|--------|
-| 1–7 | 0 — Server & API |
-| 8–14 | 1 — Client |
-| 15–28 | 2 — Prompts & structure |
-| 29–42 | 3 — Tools |
-| 43–56 | 4 — RAG |
-| 57–70 | 5 — Workflows & agents |
-| 71–77 | 6 — Evals |
-| 78–84 | 8 — Skills |
-| 85–91 | 7 — Training (optional) |
+→ [phase4.md](./phase4.md)
 
 ---
 
-## Copy-paste: today’s journal template
+## Phase 5 — Production (Days 92–112)
+
+Complete [COVERAGE.md](./COVERAGE.md) rows for Phase 5 + any 📖 gaps from Phases 1–4.
+
+| Day | Topic | Hands-on (22 min) | Done |
+|-----|--------|-------------------|------|
+| **92** | Eval CI | `run_eval.py`; exit 1 if intent accuracy &lt; 80% | Script |
+| **93** | RAG in CI | `run_all` includes `rag_qa.jsonl` | Wired |
+| **94** | Regression history | `evals/history.csv` + `--tag` | CSV |
+| **95** | Guardrails | Injection defense + secret redaction checklist for capstone | Doc |
+| **96** | Outlines / Guidance | Read docs; optional: constrain JSON generation one experiment | Note |
+| **97** | Observability | LangSmith + Phoenix + Helicone skim; standardize jsonl trace fields | Note |
+| **98** | Sandboxes | E2B vs Modal vs local deny-shell — when to use | Note |
+| **99** | Plan-and-execute | Planner lists steps; executor uses your tools (mini script) | Demo |
+| **100** | Reflection | Agent critiques draft; one revision pass max | Demo |
+| **101** | Episodic memory | Store tool-result summaries in vector store; recall in new thread | Demo |
+| **102** | LangGraph | Official quickstart skim; map to your workflow.py | Journal |
+| **103** | Multi-framework | CrewAI vs Agents SDK vs AutoGen — 1 paragraph each | Compare |
+| **104** | IDE compare | Windsurf / Copilot vs Cursor; rules file formats | Journal |
+| **105** | LoRA optional | `training/README` baseline + train/skip decision | Doc |
+| **106** | Distillation | Read teacher→student; journal fit for your capstone | Note |
+| **107** | Vector DB depth | Chroma → Qdrant or pgvector migration plan | Plan |
+| **108** | Advanced chunking | Parent-document or semantic chunk on one file | Experiment |
+| **109** | MMR retrieval | Diversify top-k vs plain cosine on one query | Compare |
+| **110** | CLI coding agent | Bounded bash allowlist; run tests; no auto-push | Session |
+| **111** | LLM-as-judge | 3 RAG cases judged; document bias risk | Write-up |
+| **112** | Deploy survey | Auth in front of server, Docker, rate limits | Checklist |
+
+→ [phase5.md](./phase5.md) · Full matrix: [COVERAGE.md](./COVERAGE.md)
+
+---
+
+## Capstone sprint (after Phase 5)
+
+1. Scope + acceptance tests  
+2. Build with workflow + RAG + skills  
+3. Eval gate in README  
+4. Use 3×; fix top annoyance  
+
+---
+
+## Quick reference
+
+| Days | Phase | Topics |
+|------|-------|--------|
+| 1–7 | 0 | Bootstrap |
+| 8–21 | 1 | Quant, runtimes, sampling, **client** |
+| 22–35 | 2A | Prompts, JSON, golden eval |
+| 36–56 | 2B | RAG, hybrid, graph stretch |
+| 57–70 | 3A | Tools, MCP, safety |
+| 71–84 | 3B | Workflow, agent, hybrid |
+| 85–91 | 4 | Rules, skills, router |
+| 92–112 | 5 + gaps | Eval, guardrails, frameworks, memory, deploy — [COVERAGE.md](./COVERAGE.md) |
+
+---
+
+## Journal template
 
 ```markdown
-# YYYY-MM-DD — Day N
+# YYYY-MM-DD — Day N (Phase X — topic)
 
 - **Time boxed:** 30 min
 - **Did:**
 - **Stuck:**
 - **Tomorrow:** Day N+1
 ```
-
-Save as `docs/journal/YYYY-MM-DD.md`.

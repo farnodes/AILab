@@ -2,7 +2,7 @@
 
 Run [llama.cpp](https://github.com/ggml-org/llama.cpp) `llama-server` with **Qwen3 1.7B** (Q4_K_M GGUF) from Hugging Face.
 
-**Learning path:** [phases.md](./phases.md) (Phase 0–7 guides) · [ROADMAP.md](./ROADMAP.md) · [DAILY_30MIN.md](./DAILY_30MIN.md) (30 min/day). **GitHub:** [GITHUB.md](./GITHUB.md).
+**Learning path:** [ROADMAP.md](./ROADMAP.md) · [phases.md](./phases.md) (0–5) · [DAILY_30MIN.md](./DAILY_30MIN.md). **GitHub:** [GITHUB.md](./GITHUB.md).
 
 ## Requirements
 

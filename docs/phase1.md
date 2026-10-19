@@ -1,110 +1,91 @@
-# Phase 1 — Clients & application skeleton
+# Phase 1 — Local AI execution & small language models (SLMs)
 
-**Duration:** ~1 week (Days 8–14 in [DAILY_30MIN.md](./DAILY_30MIN.md))  
-**Prerequisites:** [phase0.md](./phase0.md)  
-**Next:** [phase2.md](./phase2.md) — Prompting & structured logic
+**Days:** 8–21 · **Prerequisites:** [phase0.md](./phase0.md) · **Next:** [phase2.md](./phase2.md)
+
+Read sections **1 → 6** in order (matches [TOPIC_SEQUENCE.md](./TOPIC_SEQUENCE.md)).
 
 ---
 
 ## Purpose
 
-Treat the LLM as a **network dependency**: timeouts, errors, tests, and a single place in code that talks to `http://127.0.0.1:8080/v1`. Everything later (RAG, tools, agents) should call your client—not scatter raw `curl` everywhere.
+Run, serve, and tune **SLMs** locally—then wrap them in a **tested HTTP client**.
 
 ---
 
-## Core concepts
+## 1. Quantization & formats (Days 8–10)
 
-### Messages and roles
+| Format | Use |
+|--------|-----|
+| **GGUF** | llama.cpp, Metal/CPU — **this lab** |
+| **EXL2** | ExLlama / GPU |
+| **AWQ / GPTQ** | vLLM, TGI |
 
-Chat APIs use an array of messages:
+Lower bits → less RAM, faster inference, some quality loss.
 
-| Role | Typical use |
-|------|-------------|
-| `system` | Rules, persona, output format |
-| `user` | End-user input |
-| `assistant` | Model replies (include in history for multi-turn) |
+---
 
-**Conversation state** is just this list growing over turns. The server does not magically remember past sessions unless you send history again (or add your own DB later).
-
-### SDK vs HTTP
-
-- **Raw HTTP** (`httpx`, `fetch`): full control, easy to mock in tests.
-- **OpenAI SDK** with `base_url` pointing at local server: less boilerplate, same API shape.
-
-For learning, a thin `httpx` wrapper is enough.
-
-### Streaming
-
-Streaming improves perceived latency: print tokens as they arrive. Implementation reads SSE or chunked JSON lines until `[DONE]`.
-
-### Configuration
-
-Use environment variables so one codebase switches targets:
+## 2. Memory & KV-cache (Day 11)
 
 ```text
-LLM_BASE_URL=http://127.0.0.1:8080/v1
-LLM_API_KEY=optional-for-local
-LLM_MODEL=enacimie/Qwen3-1.7B-Q4_K_M-GGUF
+Weight memory ≈ Parameters × Bits_per_weight / 8
+Total ≈ weights + KV-cache + runtime overhead
 ```
 
-### Reliability
-
-- **Timeout** (e.g. 30s) — local model can hang on huge prompts.
-- **Clear errors** — distinguish connection refused vs HTTP 4xx/5xx.
-- **Mocked tests** — CI should not require `llama-server` running.
+KV-cache grows with **context length** (`-c 4096`) and concurrency.
 
 ---
 
-## What you build
+## 3. Serving engines & runtimes (Days 12–14)
+
+**Local:** llama.cpp (`llama-server`), Ollama, LM Studio.
+
+**Production (survey):** vLLM, TGI, SGLang — higher throughput, GPU clusters.
+
+---
+
+## 4. Parameter tuning & sampling (Days 15–16)
+
+Temperature, Top-P, Top-K, Min-P, repetition penalty.
+
+**Thinking models (Qwen3):** concise system prompt; lower temp; cap `max_tokens`; adjust penalty if looping.
+
+*(Phase 0 Day 4 was a preview; deepen here.)*
+
+---
+
+## 5. Application layer — client code (Days 17–21)
 
 ```text
-tools/
-  llm_client/
-    __init__.py      # health(), chat(), stream_chat()
-    config.py        # env defaults
-experiments/
-  01_hello_chat.py   # CLI entry
-tests/
-  test_llm_client.py # mocked HTTP
+tools/llm_client/     health(), chat(), stream_chat()
+experiments/01_hello_chat.py
+tests/                  mocked httpx
 ```
 
-**Minimum API:**
-
-| Function | Behavior |
-|----------|----------|
-| `health()` | `GET /health` or lightweight completion |
-| `chat(messages, **kwargs)` | Returns assistant string |
-| `stream_chat(messages, **kwargs)` | Yields content deltas |
+Env: `LLM_BASE_URL`, `LLM_MODEL`, optional `LLM_API_KEY`.
 
 ---
 
-## Exercises
+## 6. Model adaptation (Days 105–106)
 
-1. `health()` with friendly error if server is down.
-2. `chat()` with timeout and model id from env.
-3. `stream_chat()` printing to stdout.
-4. One pytest with mocked response body.
-5. CLI: `python experiments/01_hello_chat.py "question"`.
+| Method | Coverage |
+|--------|----------|
+| **LoRA / SFT** | Day 105 — merge → GGUF → `llama-server` |
+| **DPO / preference** | 📖 [COVERAGE.md](./COVERAGE.md) — after SFT |
+| **Distillation** | Day 106 — teacher (cloud) → student (local SLM) |
+
+Always **before/after** evals ([phase5](./phase5.md), [COVERAGE](./COVERAGE.md)).
 
 ---
 
 ## Done when
 
-- [ ] Library + CLI demo work against your local server.
-- [ ] Tests pass **without** the server running.
-- [ ] `LLM_BASE_URL` documented in a short README under `tools/llm_client/`.
+- [ ] GGUF vs AWQ/GPTQ explained
+- [ ] Memory estimate for one model you run
+- [ ] Sampling experiment documented
+- [ ] Client + offline test
 
 ---
 
-## Design tips
+## Related
 
-- Keep the client **dumb** — no business prompts here; Phase 2 owns prompts.
-- Log request id / latency at the call site in apps, not necessarily inside the client.
-- Return raw response objects optionally for debugging (`return_full=True`).
-
----
-
-## Related docs
-
-- [phase0.md](./phase0.md) — HTTP API basics
-- [phase2.md](./phase2.md) — prompts on top of `chat()`
+[README.md](./README.md) · [phase2.md](./phase2.md)

@@ -1,118 +1,77 @@
-# Phase 2 — Prompting & structured logic
+# Phase 2 — RAG & context engineering
 
-**Duration:** ~2 weeks (Days 15–28 in [DAILY_30MIN.md](./DAILY_30MIN.md))  
-**Prerequisites:** [phase1.md](./phase1.md)  
-**Next:** [phase3.md](./phase3.md) — Tools & side effects
+**Days:** 22–56 (+ 107–109) · **Prerequisites:** [phase1.md](./phase1.md) · **Next:** [phase3.md](./phase3.md)
 
----
+Read **§1 → §6** in order. Track every row in [COVERAGE.md](./COVERAGE.md).
 
-## Purpose
-
-Turn prompts into **versioned, testable artifacts**. The model returns text; your application needs **reliable structure** (JSON, labels, extracted fields). Phase 2 is where “AI logic” starts to look like normal software: schemas, validators, retries, golden files.
-
----
-
-## Core concepts
-
-### System prompt vs user content
-
-- **System:** stable instructions (“you classify intent”, “output JSON only”).
-- **User:** variable input per request.
-- **Few-shot examples** in system or user messages teach format without training.
-
-### Sampling parameters
-
-| Param | Effect |
-|-------|--------|
-| `temperature` | Higher → more random; lower → more deterministic |
-| `top_p` | Nucleus sampling; alternative to temperature |
-| `max_tokens` | Cap on completion length |
-
-For classification and extraction, prefer **low temperature** and strict format instructions.
-
-### Structured output patterns
-
-1. **JSON in the reply** — instruct “no markdown, valid JSON only”.
-2. **Delimited blocks** — e.g. XML tags `<result>...</result>` for easier parsing.
-3. **Schema in the prompt** — paste field names and types.
-
-The model can still violate the contract—**never trust without validation**.
-
-### Parse → validate → retry
-
-```text
-LLM text → extract JSON → Pydantic/Zod validate
-                ↓ fail
-         retry once with error message in user message
-```
-
-This loop is cheaper and more reliable than hoping the next model version fixes formatting.
-
-### Prompt versioning
-
-Files like `tools/prompts/classify_v1.md`, `classify_v2.md`. Changelog one line per version. Tie eval scores to `prompt_version` (Phase 6).
-
-### Model-specific notes (Qwen3)
-
-Some models emit long “reasoning” unless disabled or instructed for concise final answers. If outputs are noisy, adjust system prompt or check model card for thinking/reasoning flags.
+| Block | Days |
+|-------|------|
+| 2A Context & evals | 22–35 |
+| 2B RAG core | 36–49 |
+| 2B Advanced retrieval | 50–56, 107–109 |
 
 ---
 
-## What you build
+## 1. Context engineering (Days 22–28)
 
-```text
-tools/
-  prompts/
-    classify_v1.md
-    extract_v1.md
-  structured/
-    parse.py           # parse_json_from_llm, retry helper
-    schemas.py         # Pydantic models
-experiments/
-  02_classify.py
-  03_extract_entities.py
-evals/
-  sets/
-    intent_golden.jsonl   # start of eval culture (full runner in Phase 6)
-```
-
-**Example tasks**
-
-| Task | Output schema |
-|------|----------------|
-| Intent classifier | `{ "intent": "...", "confidence": float }` |
-| Action extractor | `{ "actions": ["..."] }` |
+Versioned prompts, JSON, **Pydantic**, retry, classifier + extractor CLIs.
 
 ---
 
-## Exercises
+## 2. Golden sets & baseline eval (Days 29–35)
 
-1. Classifier with three intents; manual test 5 phrases.
-2. JSON-only output + Pydantic validation.
-3. One automatic retry on validation failure.
-4. Second prompt template (extractor) with 3 test notes.
-5. `classify_v2.md` — change one rule; compare on same inputs.
-6. Golden file: 10 labeled examples; script prints accuracy %.
+`intent_golden.jsonl`, accuracy, adversarial cases, `prompt_version`, capstone samples.
+
+---
+
+## 3. Embeddings & vector databases (Days 38, 107)
+
+| Store | When |
+|-------|------|
+| **Chroma** | Local lab default |
+| **Qdrant** | Filters, production |
+| **pgvector** | Postgres already in stack |
+| **Pinecone** | Managed cloud |
+
+**Dense retrieval:** embed query + chunks, cosine similarity.
+
+---
+
+## 4. Chunking & RAG pipeline (Days 36–49, 108–109)
+
+| Strategy | Notes |
+|----------|--------|
+| Fixed + overlap | Baseline (Day 37) |
+| **Semantic** | Split on meaning boundaries |
+| **Parent-document** | Small child chunks search; parent text to LLM |
+| **Sliding window** | Long sequential text |
+| **MMR** | Reduce redundant top-k (Day 109) |
+
+Pipeline: ingest → chunk → embed → index → retrieve → (re-rank) → prompt → cite.
+
+---
+
+## 5. Hybrid search & re-ranking (Days 50–51)
+
+**BM25 + dense** for SKUs, APIs, exact tokens.
+
+**Re-rankers:** BGE-Reranker, Cohere Rerank — reorder top-k before LLM.
+
+---
+
+## 6. GraphRAG & knowledge graphs (Days 52–56)
+
+Entities/relations from docs; **NetworkX** (lab) or **Neo4j** (prod); combine with vector hits for multi-hop questions.
 
 ---
 
 ## Done when
 
-- [ ] At least **two** prompt templates in `tools/prompts/`.
-- [ ] Parser + validator + optional retry wired to Phase 1 `chat()`.
-- [ ] Golden set with a baseline accuracy number in your journal.
+- [ ] [COVERAGE.md](./COVERAGE.md) Phase 2 rows ✅
+- [ ] Classify + RAG demo with citations
 
 ---
 
-## Anti-patterns
+## Related
 
-- Huge prompts copied into code strings — use files.
-- Parsing with brittle regex on natural language when JSON was requested.
-- No baseline metrics before “improving” the prompt.
-
----
-
-## Related docs
-
-- [phase3.md](./phase3.md) — when the model must *act*, not only reply
-- [phase6.md](./phase6.md) — formal eval runner
+[phase3.md](./phase3.md) · [phase5.md](./phase5.md)

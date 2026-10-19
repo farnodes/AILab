@@ -43,6 +43,7 @@ git init   # skip if clone
 
 ```bash
 gh repo create local-ai-lab --private --source=. --remote=origin --push
+# This lab: https://github.com/swetank01/local-ai-lab
 ```
 
 Use a public repo instead: add `--public`.

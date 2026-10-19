@@ -1,14 +1,14 @@
-# Milestones (from ROADMAP)
+# Milestones — Farnodes AI Lab
 
-Copy checklist; tick as you complete the matching **DAILY_30MIN** days. Details: [phases.md](../phases.md). Push progress: [GITHUB.md](../GITHUB.md).
+[phases.md](../phases.md) · [TOPIC_SEQUENCE.md](../TOPIC_SEQUENCE.md) · [GITHUB.md](../GITHUB.md)
 
-- [ ] Phase 0 (Days 1–7): tokens, context, server demos
-- [ ] Phase 1 (Days 8–14): client + streaming + test
-- [ ] Phase 2 (Days 15–28): structured JSON + golden eval
-- [ ] Phase 3 (Days 29–42): tool loop + sandbox + REPL
-- [ ] Phase 4 (Days 43–56): RAG ingest + citations CLI
-- [ ] Phase 5 (Days 57–70): workflow + agent hybrid + checkpoints
-- [ ] Phase 6 (Days 71–77): eval runner + history
-- [ ] Phase 8 (Days 78–84): two skills + router
-- [ ] Phase 7 (Days 85–91, optional): training decision / LoRA experiment
-- [ ] Capstone: shipped tool I use weekly
+- [ ] **Phase 0** (Days 1–7) — [phase0.md](../phase0.md)
+- [ ] **Phase 1** (Days 8–21) — SLM + client — [phase1.md](../phase1.md)
+- [ ] **Phase 2A** (Days 22–35) — Context & golden eval — [phase2.md](../phase2.md)
+- [ ] **Phase 2B** (Days 36–56) — RAG + hybrid/graph — [phase2.md](../phase2.md)
+- [ ] **Phase 3A** (Days 57–70) — Tools — [phase3.md](../phase3.md)
+- [ ] **Phase 3B** (Days 71–84) — Workflow & agent — [phase3.md](../phase3.md)
+- [ ] **Phase 4** (Days 85–91) — IDE & skills — [phase4.md](../phase4.md)
+- [ ] **Phase 5** (Days 92–112) — [phase5.md](../phase5.md)
+- [ ] **Coverage** — All rows ✅ in [COVERAGE.md](../COVERAGE.md)
+- [ ] **Capstone** — Shipped weekly-use project

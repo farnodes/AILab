@@ -1,15 +1,19 @@
-# Local AI Lab
+# Farnodes AI Lab
 
-Hands-on, **local-first** path to building AI tools: run [llama.cpp](https://github.com/ggml-org/llama.cpp) on your machine, then add clients, RAG, agents, evals, and optional fine-tuning.
+Hands-on **local-first** path: **SLMs** → **RAG** → **multi-agent orchestration** → **IDE agent workflows** → **production guardrails**.
+
+GitHub: [swetank01/local-ai-lab](https://github.com/swetank01/local-ai-lab)
 
 ## Start here
 
 | Doc | Purpose |
 |-----|---------|
 | [docs/README.md](docs/README.md) | Run `llama-server` + Qwen3 GGUF |
-| [docs/phases.md](docs/phases.md) | Phase 0–7 learning guides |
+| [docs/ROADMAP.md](docs/ROADMAP.md) | Full curriculum (Phases 0–5) |
+| [docs/TOPIC_SEQUENCE.md](docs/TOPIC_SEQUENCE.md) | Ordered topics |
+| [docs/COVERAGE.md](docs/COVERAGE.md) | **All topics** → day + phase (checklist) |
+| [docs/phases.md](docs/phases.md) | Phase guides index |
 | [docs/DAILY_30MIN.md](docs/DAILY_30MIN.md) | 30 min/day schedule |
-| [docs/ROADMAP.md](docs/ROADMAP.md) | Full curriculum & capstones |
 | [docs/journal/](docs/journal/) | **Your progress** (commit after each session) |
 | [docs/GITHUB.md](docs/GITHUB.md) | How to sync this repo to GitHub |
 
