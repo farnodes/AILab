@@ -1,0 +1,34 @@
+# Local llama.cpp binaries & downloads (~40MB+) — install per docs/README.md
+.llama/
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+
+# Data & indexes (add paths as RAG grows)
+data/corpus/
+data/index/
+data/chunks.jsonl
+logs/
+
+# OS & editors
+.DS_Store
+.idea/
+.vscode/
+
+# Model caches (never commit weights)
+*.gguf
+*.bin
