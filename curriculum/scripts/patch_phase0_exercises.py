@@ -113,7 +113,7 @@ ENHANCED: dict[str, list[dict]] = {
             "body": "Save the Hello response (simpler baseline) for diffing in later days.",
             "why": "Files beat terminal scrollback for learning and git.",
             "commands": [
-                "mkdir -p experiments",
+                "mkdir -p examples",
                 "curl -s http://127.0.0.1:11434/v1/chat/completions \\",
                 "  -H \"Content-Type: application/json\" \\",
                 "  -d '{\"model\":\"lfm3\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}' \\",
@@ -245,7 +245,7 @@ ENHANCED: dict[str, list[dict]] = {
             "body": "Capture TTFT, model, and whether reasoning preceded content.",
             "why": "Day 7 review uses this artifact.",
             "commands": [
-                "mkdir -p experiments",
+                "mkdir -p examples",
                 "printf 'Day 3\\nTTFT seconds: (fill in)\\nModel: lfm3\\nNote: reasoning chunks before content? yes/no\\n' > examples/day03-streaming.txt",
                 "cat examples/day03-streaming.txt"
             ],
@@ -294,7 +294,7 @@ ENHANCED: dict[str, list[dict]] = {
             "body": "Scenario: Incident bot must be short and deterministic.",
             "why": "temperature 0 + strict system reduces variance.",
             "commands": [
-                "mkdir -p experiments",
+                "mkdir -p examples",
                 "curl -s http://127.0.0.1:11434/v1/chat/completions \\",
                 "  -H \"Content-Type: application/json\" \\",
                 "  -d '{\"model\":\"lfm3\",\"temperature\":0,\"messages\":[{\"role\":\"system\",\"content\":\"Reply in at most 15 words. No preamble.\"},{\"role\":\"user\",\"content\":\"Explain what a token is in one sentence.\"}]}' \\",
@@ -368,7 +368,7 @@ ENHANCED: dict[str, list[dict]] = {
             "body": "Generate ~12k characters of filler plus a question at the start: “What is the magic word at the end?” (word only at end).",
             "why": "Tests whether early instructions survive (often they do not).",
             "commands": [
-                "mkdir -p experiments",
+                "mkdir -p examples",
                 "python3 -c \"prefix='What is the magic word at the end of this text? Reply one word. '; filler='word '*3000; suffix=' MAGICEND'; open('examples/day05-long-prompt.txt','w').write(prefix+filler+suffix)\"",
                 "wc -c examples/day05-long-prompt.txt"
             ],

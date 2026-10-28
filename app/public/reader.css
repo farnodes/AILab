@@ -114,6 +114,10 @@
   vertical-align: middle;
 }
 
+a.prog-icon {
+  text-decoration: none;
+}
+
 .prog-icon.status-not_started {
   background: #fff;
   border-color: #dc2626;

@@ -4,11 +4,13 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>AILab — Roadmap</title>
-    <link rel="stylesheet" href="/styles.css" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css?v=12" />
+    <link rel="stylesheet" href="/reader.css?v=4" />
   </head>
   <body>
-    <div class="layout">
-      <aside class="sidebar">
+    <div class="layout" id="layout">
+      <aside class="sidebar" id="sidebar">
         <header class="brand">
           <p class="eyebrow">AILab</p>
           <h1>Roadmap</h1>
@@ -20,13 +22,30 @@
           <ul id="global-resources"></ul>
         </section>
         <p class="save-hint muted" id="save-status">
-          Progress is stored in learner/progress.json (survives server restarts).
+          Progress stays on this computer.
         </p>
       </aside>
-      <main class="main" id="main">
-        <p class="muted">Loading curriculum…</p>
-      </main>
+      <div class="stage">
+        <button type="button" id="nav-backdrop" class="nav-backdrop" aria-label="Close days"></button>
+        <div class="stage-bar">
+          <button type="button" id="days-toggle" class="days-toggle">Days</button>
+          <button type="button" id="continue-btn" class="continue-btn" hidden>
+            Continue
+          </button>
+        </div>
+        <main class="main" id="main">
+          <p class="muted">Loading curriculum…</p>
+        </main>
+      </div>
+      <aside id="doc-panel" class="doc-panel" hidden>
+        <header class="doc-bar">
+          <span class="doc-label" id="doc-label"></span>
+          <a id="doc-full" href="#">Open full page</a>
+          <button type="button" id="doc-close" class="pager-btn">Close</button>
+        </header>
+        <article class="doc-body reader-main" id="doc-body"></article>
+      </aside>
     </div>
-    <script src="/app.js?v=10" type="module"></script>
+    <script src="/app.js?v=12" type="module"></script>
   </body>
 </html>
