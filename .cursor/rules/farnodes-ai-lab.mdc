@@ -1,0 +1,17 @@
+---
+description: AILab — show last-chapter revision when starting a session
+alwaysApply: true
+---
+
+# AILab session start
+
+When the user opens this project, asks **what next**, **recap**, **revision**, or starts a **day N** lab session:
+
+1. Read `learner/journal/PROGRESS.md` for last completed day, phase, and next task.
+2. Read the linked **chapter revision** under `docs/revision/`.
+3. Begin with a **short revision** (5–8 bullets) of the **last completed chapter/day**, then **today’s next day** from `docs/guides/DAILY_30MIN.md`.
+4. Runtime: run **`./server.sh`** once per session (Ollama + `lfm3`). API `http://127.0.0.1:11434/v1`.
+
+User entry doc: `OPEN.md`.
+
+This repo is the open roadmap at `github.com/farnodes/AILab`. Shared days live in `curriculum/curriculum.json`. A learner’s checkmarks live in `learner/progress.json` and are not committed.

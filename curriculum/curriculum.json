@@ -1,0 +1,874 @@
+{
+  "version": 1,
+  "title": "AILab",
+  "subtitle": "Local-first \u00b7 Ollama \u00b7 lfm3",
+  "phases": [
+    {
+      "phase": 0,
+      "name": "Bootstrap"
+    },
+    {
+      "phase": 1,
+      "name": "SLMs & client"
+    },
+    {
+      "phase": 2,
+      "name": "Context & RAG"
+    },
+    {
+      "phase": 3,
+      "name": "Tools & agents"
+    },
+    {
+      "phase": 4,
+      "name": "IDE workflows"
+    },
+    {
+      "phase": 5,
+      "name": "Production"
+    }
+  ],
+  "resources": [
+    {
+      "id": "runtime",
+      "label": "Runtime (Ollama + lfm3)",
+      "path": "docs/README.md"
+    },
+    {
+      "id": "daily",
+      "label": "Daily progress",
+      "path": "docs/guides/DAILY_30MIN.md"
+    },
+    {
+      "id": "open",
+      "label": "Session entry (OPEN)",
+      "path": "OPEN.md"
+    }
+  ],
+  "days": [
+    {
+      "id": "day-1",
+      "number": 1,
+      "title": "Ollama & API",
+      "phase": 0,
+      "phaseLabel": "Bootstrap",
+      "timeBoxMinutes": 30,
+      "summary": "Operate Ollama as a local LLM service: verify model + API, define token & context for everything after.",
+      "resources": [
+        "runtime"
+      ],
+      "steps": [
+        {
+          "id": "1",
+          "title": "Why Day 1 \u2014 bootstrap the runtime",
+          "durationMinutes": 5,
+          "body": "Scenario: You join a team that runs AI features behind an HTTP API\u2014not a chat website. Before prompts or RAG, you must know the service is up, which model name to pass, and what limits apply.\n\nToday you treat Ollama like a microservice: start it, list models, read /api/tags, then define token and context in your journal so later numbers make sense.\n\nSkim Runtime README + Daily progress, then continue.",
+          "why": "On-call debugging starts with \u201cis the server running?\u201d not \u201cis the prompt wrong?\u201d",
+          "links": [
+            {
+              "label": "Runtime README",
+              "path": "docs/README.md"
+            },
+            {
+              "label": "Daily progress",
+              "path": "docs/guides/DAILY_30MIN.md"
+            }
+          ]
+        },
+        {
+          "id": "2",
+          "title": "Exercise \u2014 start the LLM service",
+          "body": "Scenario: First minute of a lab session\u2014bring the stack up the same way every time.",
+          "why": "One command beats remembering five manual steps.",
+          "commands": [
+            "./server.sh"
+          ],
+          "outcome": "Terminal shows API ready on 11434 and model lfm3 (or pull completes)."
+        },
+        {
+          "id": "3",
+          "title": "Exercise \u2014 verify model name",
+          "body": "Scenario: Your curl fails with \u201cmodel not found\u201d if the name here does not match every JSON body you send later.",
+          "why": "The string lfm3 must match exactly in all API calls.",
+          "commands": [
+            "ollama list"
+          ],
+          "outcome": "You see lfm3 in the list and know the name to copy into Day 2 curl."
+        },
+        {
+          "id": "4",
+          "title": "Exercise \u2014 health via /api/tags",
+          "body": "Scenario: A monitoring check pings inventory\u2014not chat\u2014to see if Ollama is alive.",
+          "why": "/api/tags is Ollama-native; /v1/* is the OpenAI-compatible layer on the same port.",
+          "commands": [
+            "curl -s http://127.0.0.1:11434/api/tags | python3 -m json.tool",
+            "curl -s http://127.0.0.1:11434/api/tags | python3 -c \"import json,sys; d=json.load(sys.stdin); print('models:', [m.get('name') for m in d.get('models',[])][:5])\""
+          ],
+          "outcome": "JSON prints without \u201cconnection refused\u201d; you can name one model from the list."
+        },
+        {
+          "id": "5",
+          "title": "Reflect \u2014 define token (journal)",
+          "body": "Where to write: open learner/journal/PROGRESS.md or create learner/journal/YYYY-MM-DD.md for today. Use a heading like \u201cDay 1 \u2014 tokens\u201d.\n\nYour task (3\u20135 sentences in your own words):\n1) What is a token, in plain language?\n2) Why is \u201cHello\u201d not guaranteed to be exactly one token?\n3) Where will you read token counts in API responses starting tomorrow?\n\nA strong entry names subword pieces and mentions usage.prompt_tokens / completion_tokens. A weak entry only says \u201cpieces of text\u201d with no link to the API.",
+          "why": "Tokens drive billing, speed, and context limits in every product.",
+          "outcome": "Journal answers: subword pieces; usage.prompt_tokens / completion_tokens.",
+          "links": [
+            {
+              "label": "Journal (PROGRESS.md)",
+              "path": "learner/journal/PROGRESS.md"
+            }
+          ],
+          "journalGuide": "Tokens are the unit everything else is built on. Models never see \u201cwords\u201d directly\u2014they see token IDs produced by a tokenizer. A tokenizer splits text into subword pieces: common English might be one token per word, but rare words, typos, emoji, and code often become several tokens. Spaces and punctuation can cost tokens too.\n\nThat matters because three different systems all count tokens the same way: (1) how much text fits in one request (context window), (2) how long generation takes, and (3) how usage is reported in API JSON. Characters on screen are a poor proxy\u201410,000 characters of JSON can be far more tokens than 10,000 characters of plain English.\n\nStarting on Day 2 you will see usage.prompt_tokens (everything you sent), usage.completion_tokens (everything the model generated, including hidden reasoning on LFM3), and usage.total_tokens. Products bill and throttle on those numbers, not on \u201chow long the reply looked.\u201d"
+        },
+        {
+          "id": "6",
+          "title": "Reflect \u2014 define context window (journal)",
+          "body": "Where to write: same journal file as the token entry; heading \u201cDay 1 \u2014 context window\u201d.\n\nYour task (3\u20135 sentences):\n1) What must fit inside a single chat/completions request?\n2) What happens if someone pastes a whole PDF into one message?\n3) Why does this lab use ~4096 as a working mental cap even if marketing sheets quote bigger numbers?\n\nMention that prompt + completion share one limit and that overflow leads to truncation or errors.",
+          "why": "Phase 2 RAG exists because you cannot stuff everything into one call.",
+          "outcome": "Journal mentions prompt + reply share one limit; overflow truncates or errors.",
+          "journalGuide": "The context window is a hard budget for one API call. Everything in messages[]\u2014system, user, assistant history you resend, and the model\u2019s new reply\u2014must fit inside that budget, measured in tokens. If the budget is ~4096 tokens in this lab, you cannot reliably paste an entire PDF or repo into one user message and expect the model to \u201csee\u201d all of it.\n\nWhen input is too large, runtimes may truncate silently (often dropping the middle), return an error, or stop early with finish_reason length. That is not a bug in your curl\u2014it is physics. Phase 2 (RAG) exists specifically because teams retrieve small relevant chunks instead of stuffing whole documents into one prompt.\n\nContext is shared: a long chat history you keep appending eats the same budget as the user\u2019s latest question. Stateless APIs mean your app must decide what history to resend and what to drop.",
+          "links": [
+            {
+              "label": "Journal (PROGRESS.md)",
+              "path": "learner/journal/PROGRESS.md"
+            }
+          ]
+        },
+        {
+          "id": "7",
+          "title": "Close out",
+          "body": "Mark all steps done. You can explain: base URL, model id, token, context\u2014in one breath.",
+          "why": "Day 2 assumes this foundation.",
+          "outcome": "Day 1 shows Done in the sidebar and Daily progress."
+        }
+      ],
+      "reference": {
+        "apiBase": "http://127.0.0.1:11434/v1",
+        "model": "lfm3",
+        "tagsUrl": "http://127.0.0.1:11434/api/tags"
+      }
+    },
+    {
+      "id": "day-2",
+      "number": 2,
+      "title": "Chat JSON",
+      "phase": 0,
+      "phaseLabel": "Bootstrap",
+      "timeBoxMinutes": 30,
+      "summary": "Integrate like a backend job: one-shot JSON, usage, reasoning, and stateless message history.",
+      "resources": [
+        "runtime",
+        "daily"
+      ],
+      "steps": [
+        {
+          "id": "1",
+          "title": "Why Day 2 \u2014 one-shot chat JSON",
+          "durationMinutes": 5,
+          "body": "Scenario: A nightly batch job sends support tickets to the model and stores JSON\u2014not a chat UI. That integration uses non-streaming POST /v1/chat/completions.\n\nToday you run a realistic one-liner prompt, save the full response, and read content, reasoning, usage, and finish_reason. That file is your baseline for Days 3\u20134.\n\nRun ./server.sh first.",
+          "why": "Batch + tests use one JSON body; streaming comes later for interactive UX.",
+          "commands": [
+            "./server.sh"
+          ],
+          "links": [
+            {
+              "label": "Phase 0 API",
+              "path": "docs/guides/phase0.md"
+            }
+          ]
+        },
+        {
+          "id": "2",
+          "title": "Learn \u2014 request contract",
+          "body": "Open phase0.md mentally: POST /v1/chat/completions with model, messages[{role, content}], stream omitted or false.",
+          "why": "Every SDK ultimately sends this shape.",
+          "links": [
+            {
+              "label": "Phase 0 guide",
+              "path": "docs/guides/phase0.md"
+            }
+          ],
+          "outcome": "You can sketch the JSON on paper without curl."
+        },
+        {
+          "id": "3",
+          "title": "Exercise \u2014 realistic one-shot prompt",
+          "body": "Scenario: Classify urgency of a user message (practice for later agent routing).",
+          "why": "More memorable than Hello\u2014and still one user message.",
+          "commands": [
+            "curl -s http://127.0.0.1:11434/v1/chat/completions \\",
+            "  -H \"Content-Type: application/json\" \\",
+            "  -d '{\"model\":\"lfm3\",\"messages\":[{\"role\":\"user\",\"content\":\"User message: \\\"Server down since 9am.\\\" Reply with one word: urgent or normal.\"}]}' | python3 -m json.tool"
+          ],
+          "outcome": "Single JSON object; choices[0].message.content is non-empty."
+        },
+        {
+          "id": "4",
+          "title": "Exercise \u2014 save artifact",
+          "body": "Save the Hello response (simpler baseline) for diffing in later days.",
+          "why": "Files beat terminal scrollback for learning and git.",
+          "commands": [
+            "mkdir -p experiments",
+            "curl -s http://127.0.0.1:11434/v1/chat/completions \\",
+            "  -H \"Content-Type: application/json\" \\",
+            "  -d '{\"model\":\"lfm3\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}' \\",
+            "  | python3 -m json.tool > examples/day02-response.json"
+          ],
+          "outcome": "examples/day02-response.json exists and is valid JSON."
+        },
+        {
+          "id": "5",
+          "title": "Exercise \u2014 extract user-visible answer",
+          "body": "Scenario: Your app only displays message.content to the user.",
+          "why": "Other fields are metadata or hidden reasoning.",
+          "commands": [
+            "python3 -c \"import json; d=json.load(open('examples/day02-response.json')); print(d['choices'][0]['message']['content'])\""
+          ],
+          "outcome": "You see the assistant greeting without reading raw JSON by hand."
+        },
+        {
+          "id": "6",
+          "title": "Exercise \u2014 LFM3 reasoning cost",
+          "body": "Scenario: Latency and token bills include reasoning tokens even if the UI hides them.",
+          "why": "Short content + long reasoning is normal on LFM3.",
+          "commands": [
+            "python3 -c \"import json; d=json.load(open('examples/day02-response.json')); m=d['choices'][0]['message']; r=m.get('reasoning',''); print('content chars', len(m.get('content',''))); print('reasoning chars', len(r)); print('reasoning preview:', r[:120])\""
+          ],
+          "outcome": "You notice reasoning often dominates completion_tokens."
+        },
+        {
+          "id": "7",
+          "title": "Exercise \u2014 usage & finish_reason",
+          "body": "Run the command above, then in your journal write a short bullet list:\n\u2022 prompt_tokens, completion_tokens, total_tokens (copy numbers from output)\n\u2022 finish_reason and what it implies for this Hello call\n\u2022 One sentence: why completion_tokens can exceed visible content length on LFM3",
+          "why": "stop = OK; length = need shorter prompt or higher max_tokens.",
+          "commands": [
+            "python3 -c \"import json; d=json.load(open('examples/day02-response.json')); c=d['choices'][0]; u=d.get('usage',{}); print('finish_reason:', c.get('finish_reason')); print('usage:', u)\""
+          ],
+          "outcome": "Journal lists prompt/completion/total tokens and finish_reason stop.",
+          "links": [
+            {
+              "label": "Saved response",
+              "path": "examples/day02-response.json"
+            },
+            {
+              "label": "Journal",
+              "path": "learner/journal/PROGRESS.md"
+            }
+          ],
+          "journalGuide": "The usage block is how backend jobs prove cost and health. prompt_tokens counts the input side (all roles in messages[]). completion_tokens counts generated tokens\u2014including reasoning tokens on LFM3 even when the UI only shows message.content. total_tokens is the sum.\n\nfinish_reason tells you why generation stopped: stop usually means the model ended naturally; length means it hit max_tokens or the context ceiling\u2014your prompt or answer may be truncated. Dashboards alert on length spikes because they often mean bad UX or runaway spend.\n\nJournaling these fields now builds a habit: when something \u201clooks wrong,\u201d you check JSON metadata before rewriting the prompt."
+        },
+        {
+          "id": "8",
+          "title": "Exercise \u2014 stateless multi-turn",
+          "body": "Scenario: Chat history must be sent by your app\u2014send two user messages in one request and see both in context.",
+          "why": "The server does not remember yesterday\u2019s curl.",
+          "commands": [
+            "curl -s http://127.0.0.1:11434/v1/chat/completions \\",
+            "  -H \"Content-Type: application/json\" \\",
+            "  -d '{\"model\":\"lfm3\",\"messages\":[{\"role\":\"user\",\"content\":\"My name is Sam.\"},{\"role\":\"assistant\",\"content\":\"Hi Sam.\"},{\"role\":\"user\",\"content\":\"What name did I give? One word.\"}]}' \\",
+            "  | python3 -c \"import json,sys; print(json.load(sys.stdin)['choices'][0]['message']['content'])\""
+          ],
+          "outcome": "Model answers Sam (proves history is only what you send)."
+        },
+        {
+          "id": "9",
+          "title": "Close out",
+          "body": "Confirm examples/day02-response.json exists. In your journal write 2\u20134 sentences:\nWhen would you pick non-streaming? When streaming? Name one example product surface for each (e.g. nightly ticket classifier vs in-app chat).",
+          "why": "Day 3 is streaming on the same endpoint.",
+          "outcome": "Day 2 complete in sidebar.",
+          "journalGuide": "Non-streaming (stream false or omitted) waits until the full JSON object is ready. That is ideal for batch jobs, tests, and pipelines that store one record per request\u2014your Day 2 artifact is the pattern.\n\nStreaming (stream true) sends many SSE chunks so a UI can paint text incrementally. The same messages and model are used; only the transport changes. Choose stream for interactive products; choose batch when you need a single parsed object and do not care about time-to-first-token.\n\nNeither mode remembers prior curls\u2014multi-turn only works if your app resends history in messages[].",
+          "links": [
+            {
+              "label": "Journal",
+              "path": "learner/journal/PROGRESS.md"
+            }
+          ]
+        }
+      ],
+      "reference": {
+        "endpoint": "POST http://127.0.0.1:11434/v1/chat/completions",
+        "model": "lfm3",
+        "artifact": "examples/day02-response.json",
+        "stream": "false (default)"
+      }
+    },
+    {
+      "id": "day-3",
+      "number": 3,
+      "title": "Streaming",
+      "phase": 0,
+      "phaseLabel": "Bootstrap",
+      "timeBoxMinutes": 30,
+      "summary": "Build interactive UX: stream parsing, TTFT, and visible vs reasoning tokens on LFM3.",
+      "resources": [
+        "runtime",
+        "daily"
+      ],
+      "steps": [
+        {
+          "id": "1",
+          "title": "Why Day 3 \u2014 streaming for interactive UX",
+          "durationMinutes": 5,
+          "body": "Scenario: A chat product shows tokens as they arrive so users know the model is working. Same endpoint as Day 2, but stream:true and SSE chunks.\n\nToday you measure TTFT, parse delta.reasoning vs delta.content on LFM3, and save examples/day03-streaming.txt for Day 7.\n\nRun ./server.sh.",
+          "why": "Perceived speed = time to first token, not time to full JSON.",
+          "commands": [
+            "./server.sh"
+          ],
+          "links": [
+            {
+              "label": "Day 2 baseline",
+              "path": "examples/day02-response.json"
+            },
+            {
+              "label": "Daily progress",
+              "path": "docs/guides/DAILY_30MIN.md"
+            }
+          ]
+        },
+        {
+          "id": "2",
+          "title": "Learn \u2014 batch vs stream",
+          "body": "Same URL and messages; add \"stream\": true. Response is many data: lines ending with [DONE], not one object.",
+          "why": "Choose stream for UI; batch for tests and ETL.",
+          "outcome": "You can name one field that differs in the HTTP response shape."
+        },
+        {
+          "id": "3",
+          "title": "Exercise \u2014 live stream (product-style prompt)",
+          "body": "Scenario: User asks for a short list\u2014watch tokens appear incrementally.",
+          "why": "curl -N disables buffering so you feel TTFT.",
+          "commands": [
+            "curl -N http://127.0.0.1:11434/v1/chat/completions \\",
+            "  -H \"Content-Type: application/json\" \\",
+            "  -d '{\"model\":\"lfm3\",\"messages\":[{\"role\":\"user\",\"content\":\"List three tips for learning APIs. Number them.\"}],\"stream\":true}'"
+          ],
+          "outcome": "You see multiple data: lines before [DONE]."
+        },
+        {
+          "id": "4",
+          "title": "Learn \u2014 wire format",
+          "body": "Pick one chunk: note object, choices[0].delta, and whether content or reasoning updated.",
+          "why": "Your Phase 1 client will concatenate delta fields.",
+          "links": [
+            {
+              "label": "Phase 0 API",
+              "path": "docs/guides/phase0.md"
+            }
+          ],
+          "outcome": "You can point to delta.content vs delta.reasoning in a chunk."
+        },
+        {
+          "id": "5",
+          "title": "Exercise \u2014 measure TTFT",
+          "body": "Run the timed curl. Fill TTFT into examples/day03-streaming.txt (next step) and in your journal add one paragraph: the TTFT number, whether the first chunk was reasoning or content, and why that matters for a chat UI.",
+          "why": "First chunk may be reasoning-only on LFM3\u2014note that in your metric.",
+          "commands": [
+            "time ( curl -N -s http://127.0.0.1:11434/v1/chat/completions \\",
+            "  -H \"Content-Type: application/json\" \\",
+            "  -d '{\"model\":\"lfm3\",\"messages\":[{\"role\":\"user\",\"content\":\"Say OK.\"}],\"stream\":true}' \\",
+            "  | head -1 > /dev/null )"
+          ],
+          "outcome": "You record one TTFT number in journal and in day03 file.",
+          "journalGuide": "Time to first token (TTFT) is the delay until the first data: chunk arrives over the wire. Users perceive \u201cspeed\u201d from TTFT more than total time to finish a long answer. SLO dashboards often track TTFT separately from total latency.\n\nOn LFM3 the first chunks may be delta.reasoning, not user-visible delta.content. That means TTFT can look \u201cfast\u201d while the user still waits for readable text\u2014product teams need to decide whether to show reasoning, hide it, or show a spinner until content starts.\n\nRecord TTFT in two places: a durable examples/day03-streaming.txt (artifact) and your journal (interpretation). Numbers without interpretation do not survive a week.",
+          "links": [
+            {
+              "label": "Journal",
+              "path": "learner/journal/PROGRESS.md"
+            }
+          ]
+        },
+        {
+          "id": "6",
+          "title": "Exercise \u2014 rebuild answer from chunks",
+          "body": "Scenario: Your CLI must print only user-visible text from a stream.",
+          "why": "Teaches parsing without a framework.",
+          "commands": [
+            "curl -N -s http://127.0.0.1:11434/v1/chat/completions \\",
+            "  -H \"Content-Type: application/json\" \\",
+            "  -d '{\"model\":\"lfm3\",\"messages\":[{\"role\":\"user\",\"content\":\"Count from 1 to 5.\"}],\"stream\":true}' \\",
+            "  | python3 -c \"import sys,json; out=[]\\nfor line in sys.stdin:\\n  line=line.strip()\\n  if not line.startswith('data:') or line=='data: [DONE]': continue\\n  d=json.loads(line[6:])\\n  c=d['choices'][0].get('delta',{}).get('content') or ''\\n  out.append(c)\\n  sys.stdout.write(c)\\nprint(); print('--- joined:', ''.join(out))\""
+          ],
+          "outcome": "Joined text matches what you saw stream (e.g. 1\u20265)."
+        },
+        {
+          "id": "7",
+          "title": "Exercise \u2014 save learning note",
+          "body": "Capture TTFT, model, and whether reasoning preceded content.",
+          "why": "Day 7 review uses this artifact.",
+          "commands": [
+            "mkdir -p experiments",
+            "printf 'Day 3\\nTTFT seconds: (fill in)\\nModel: lfm3\\nNote: reasoning chunks before content? yes/no\\n' > examples/day03-streaming.txt",
+            "cat examples/day03-streaming.txt"
+          ],
+          "outcome": "File exists with your TTFT filled in."
+        },
+        {
+          "id": "8",
+          "title": "Exercise \u2014 final chunk",
+          "body": "Scenario: Client must detect normal completion vs truncation.",
+          "why": "finish_reason on last chunk matches Day 2 semantics.",
+          "commands": [
+            "curl -N -s http://127.0.0.1:11434/v1/chat/completions \\",
+            "  -H \"Content-Type: application/json\" \\",
+            "  -d '{\"model\":\"lfm3\",\"messages\":[{\"role\":\"user\",\"content\":\"Say hi in five words.\"}],\"stream\":true}' | tail -3"
+          ],
+          "outcome": "You see finish_reason stop (or length) before [DONE]."
+        },
+        {
+          "id": "9",
+          "title": "Close out",
+          "body": "Journal 3\u20135 sentences: For the capstone track you are leaning toward (even if not chosen until Day 6), which flows would be streaming vs batch? Mention one risk for each choice.",
+          "why": "Day 4 tunes prompts, not transport.",
+          "outcome": "Day 3 complete.",
+          "journalGuide": "Streaming is not \u201cbetter\u201d\u2014it is appropriate when a human waits on the screen. Batch is appropriate when a worker processes a queue and writes to a database. Your capstone will likely use both: stream for demos and admin chat, batch for indexing, evals, and cron jobs.\n\nTie the choice to failure modes: streams need parsers, reconnect logic, and partial UI state; batch needs timeouts and memory for large JSON bodies.",
+          "links": [
+            {
+              "label": "Journal",
+              "path": "learner/journal/PROGRESS.md"
+            }
+          ]
+        }
+      ],
+      "reference": {
+        "endpoint": "POST http://127.0.0.1:11434/v1/chat/completions",
+        "model": "lfm3",
+        "stream": "true",
+        "curlFlag": "-N (no buffer)",
+        "artifact": "examples/day03-streaming.txt"
+      }
+    },
+    {
+      "id": "day-4",
+      "number": 4,
+      "title": "Sampling preview",
+      "phase": 0,
+      "phaseLabel": "Bootstrap",
+      "timeBoxMinutes": 30,
+      "summary": "Steer the same model with system prompts and temperature\u2014support bot vs coach.",
+      "resources": [
+        "runtime",
+        "daily"
+      ],
+      "steps": [
+        {
+          "id": "1",
+          "title": "Why Day 4 \u2014 steer behavior without changing models",
+          "durationMinutes": 5,
+          "body": "Scenario: Same lfm3 powers a terse status bot and a friendly onboarding coach\u2014system prompt + temperature do the work.\n\nToday you run the same user question under two profiles, save JSON, compare tokens and tone.\n\nRun ./server.sh.",
+          "why": "Cheaper than fine-tuning for style and format constraints.",
+          "commands": [
+            "./server.sh"
+          ]
+        },
+        {
+          "id": "2",
+          "title": "Learn \u2014 system + user roles",
+          "body": "System sets policy; user carries the task. Both live in messages[].",
+          "why": "Misplacing instructions in user text weakens control.",
+          "links": [
+            {
+              "label": "Phase 0 API",
+              "path": "docs/guides/phase0.md"
+            }
+          ],
+          "outcome": "You can write a one-line system rule for \u201cJSON only\u201d or \u201cmax 15 words\u201d."
+        },
+        {
+          "id": "3",
+          "title": "Exercise \u2014 support bot (temp 0)",
+          "body": "Scenario: Incident bot must be short and deterministic.",
+          "why": "temperature 0 + strict system reduces variance.",
+          "commands": [
+            "mkdir -p experiments",
+            "curl -s http://127.0.0.1:11434/v1/chat/completions \\",
+            "  -H \"Content-Type: application/json\" \\",
+            "  -d '{\"model\":\"lfm3\",\"temperature\":0,\"messages\":[{\"role\":\"system\",\"content\":\"Reply in at most 15 words. No preamble.\"},{\"role\":\"user\",\"content\":\"Explain what a token is in one sentence.\"}]}' \\",
+            "  | python3 -m json.tool > examples/day04-terse.json"
+          ],
+          "outcome": "day04-terse.json saved; content is noticeably short."
+        },
+        {
+          "id": "4",
+          "title": "Exercise \u2014 onboarding coach (temp 1)",
+          "body": "Scenario: Teaching mode allows warmth and extra context.",
+          "why": "Higher temperature adds variation run-to-run.",
+          "commands": [
+            "curl -s http://127.0.0.1:11434/v1/chat/completions \\",
+            "  -H \"Content-Type: application/json\" \\",
+            "  -d '{\"model\":\"lfm3\",\"temperature\":1,\"messages\":[{\"role\":\"system\",\"content\":\"Be friendly and thorough; use two short paragraphs.\"},{\"role\":\"user\",\"content\":\"Explain what a token is in one sentence.\"}]}' \\",
+            "  | python3 -m json.tool > examples/day04-verbose.json"
+          ],
+          "outcome": "day04-verbose.json saved; completion_tokens usually higher."
+        },
+        {
+          "id": "5",
+          "title": "Exercise \u2014 compare outputs",
+          "body": "After running the compare command, add a small table in your journal:\nColumns: Profile (terse / verbose) | completion_tokens | tone (1 line) | good for (product surface)\nOne closing sentence: which profile you would ship for an incident bot vs a learning coach.",
+          "why": "Quantitative + qualitative beats gut feel.",
+          "commands": [
+            "python3 -c \"import json; t=json.load(open('examples/day04-terse.json')); v=json.load(open('examples/day04-verbose.json')); print('TERSE tokens', t['usage'].get('completion_tokens')); print('VERBOSE tokens', v['usage'].get('completion_tokens')); print('---'); print('TERSE:', t['choices'][0]['message']['content']); print('VERBOSE:', v['choices'][0]['message']['content'][:300])\""
+          ],
+          "outcome": "Journal table: tokens, tone, which profile for which product surface.",
+          "journalGuide": "Same model, same user question, different system prompt and temperature\u2014two product surfaces. Temperature near 0 reduces randomness: good for support bots, extraction, and \u201csame input \u2192 same shape output.\u201d Temperature 1 allows more variation: better for brainstorming coaches, marketing drafts, and creative onboarding\u2014at the cost of higher completion_tokens and less predictability.\n\nWhen you journal, combine numbers and taste: token counts explain cost; tone explains user trust. A terse bot that saves tokens but confuses users is not a win.",
+          "links": [
+            {
+              "label": "Journal",
+              "path": "learner/journal/PROGRESS.md"
+            }
+          ]
+        },
+        {
+          "id": "6",
+          "title": "Reflect \u2014 when to use which",
+          "body": "Write three bullets in your journal:\n1) A feature that should use temperature 0 (name the user and failure if it drifts)\n2) A feature that benefits from temperature 1\n3) One system prompt rule you will reuse in Phase 2 (exact wording, \u226420 words)",
+          "why": "Phase 1 covers Top-P and LFM3-specific tuning.",
+          "outcome": "Concrete examples tied to your capstone track.",
+          "journalGuide": "Temperature and system prompts are the cheapest knobs before fine-tuning. temp 0 + strict system rules fit structured, high-stakes outputs (status, JSON, compliance). temp 1 + permissive system fit exploration and teaching.\n\nSystem rules you write now become templates in Phase 2 (\u201canswer only from provided context\u201d, \u201ccite chunk ids\u201d, \u201crefuse if not in docs\u201d). Pick one rule you expect to reuse so you are not inventing policy from scratch later.",
+          "links": [
+            {
+              "label": "Journal",
+              "path": "learner/journal/PROGRESS.md"
+            }
+          ]
+        },
+        {
+          "id": "7",
+          "title": "Close out",
+          "body": "Both JSON files exist. Mark day done.",
+          "why": "Day 5 explores limits of stuffing text into one call.",
+          "outcome": "Day 4 complete."
+        }
+      ],
+      "reference": {
+        "endpoint": "POST /v1/chat/completions",
+        "model": "lfm3",
+        "artifacts": "examples/day04-terse.json, day04-verbose.json"
+      }
+    },
+    {
+      "id": "day-5",
+      "number": 5,
+      "title": "Context limit",
+      "phase": 0,
+      "phaseLabel": "Bootstrap",
+      "timeBoxMinutes": 30,
+      "summary": "Feel context limits: baseline vs oversized prompt and why RAG exists.",
+      "resources": [
+        "runtime",
+        "daily"
+      ],
+      "steps": [
+        {
+          "id": "1",
+          "title": "Why Day 5 \u2014 context is a hard budget",
+          "durationMinutes": 5,
+          "body": "Scenario: A user attaches a \u201cwhole repo\u201d paste; the model silently drops the middle or errors. Context is finite\u2014measured in tokens.\n\nToday you baseline a small prompt, then stress-test a large one and record behavior.\n\nRun ./server.sh.",
+          "why": "Phase 2 RAG sends chunks instead of megabytes in one shot.",
+          "commands": [
+            "./server.sh"
+          ]
+        },
+        {
+          "id": "2",
+          "title": "Exercise \u2014 baseline small request",
+          "body": "Confirm normal stop + usage on a tiny prompt before stress test.",
+          "why": "You need a control to compare against failure.",
+          "commands": [
+            "curl -s http://127.0.0.1:11434/v1/chat/completions \\",
+            "  -H \"Content-Type: application/json\" \\",
+            "  -d '{\"model\":\"lfm3\",\"messages\":[{\"role\":\"user\",\"content\":\"Reply with exactly: OK\"}]}' \\",
+            "  | python3 -c \"import json,sys; d=json.load(sys.stdin); print(d['choices'][0]['finish_reason'], d.get('usage'))\""
+          ],
+          "outcome": "finish_reason stop with modest token counts."
+        },
+        {
+          "id": "3",
+          "title": "Exercise \u2014 build oversized prompt",
+          "body": "Generate ~12k characters of filler plus a question at the start: \u201cWhat is the magic word at the end?\u201d (word only at end).",
+          "why": "Tests whether early instructions survive (often they do not).",
+          "commands": [
+            "mkdir -p experiments",
+            "python3 -c \"prefix='What is the magic word at the end of this text? Reply one word. '; filler='word '*3000; suffix=' MAGICEND'; open('examples/day05-long-prompt.txt','w').write(prefix+filler+suffix)\"",
+            "wc -c examples/day05-long-prompt.txt"
+          ],
+          "outcome": "File size printed; you know MAGICEND is the correct answer if model reads the tail."
+        },
+        {
+          "id": "4",
+          "title": "Exercise \u2014 send long prompt",
+          "body": "In your journal, under \u201cDay 5 \u2014 long prompt\u201d, write:\n\u2022 Result: JSON saved OR error saved (filename)\n\u2022 One line on what you expect happened inside the model/runtime",
+          "why": "Real systems hit this in production with big PDF pastes.",
+          "commands": [
+            "python3 << 'PY'\nimport json, urllib.request\nfrom pathlib import Path\ntext = Path('examples/day05-long-prompt.txt').read_text()\nbody = json.dumps({'model': 'lfm3', 'messages': [{'role': 'user', 'content': text}]}).encode()\nreq = urllib.request.Request('http://127.0.0.1:11434/v1/chat/completions', data=body, headers={'Content-Type': 'application/json'})\ntry:\n    r = urllib.request.urlopen(req, timeout=120)\n    Path('examples/day05-long-response.json').write_bytes(r.read())\n    print('saved examples/day05-long-response.json')\nexcept Exception as e:\n    Path('examples/day05-long-error.txt').write_text(str(e))\n    print('error saved to examples/day05-long-error.txt')\nPY"
+          ],
+          "outcome": "You have either JSON or error file\u2014journal which.",
+          "journalGuide": "This step either succeeds with a large JSON response or fails with an HTTP/client error\u2014both are valid learning outcomes. Production systems see both daily. Your journal must record which path happened so future-you knows which artifact to open.\n\nIf saved: note finish_reason and whether the answer matched MAGICEND. If error: paste the error class/message and estimate whether the prompt was likely over the context budget.",
+          "links": [
+            {
+              "label": "Journal",
+              "path": "learner/journal/PROGRESS.md"
+            }
+          ]
+        },
+        {
+          "id": "5",
+          "title": "Reflect \u2014 what happened?",
+          "body": "Answer in plain language in your journal:\n1) Did the model return MAGICEND (or close)?\n2) What was finish_reason?\n3) If error, what did the message say?\n4) In one sentence, how does this connect to the context window you defined on Day 1?",
+          "why": "Your capstone RAG design should avoid this failure mode.",
+          "links": [
+            {
+              "label": "Response",
+              "path": "examples/day05-long-response.json"
+            },
+            {
+              "label": "Error",
+              "path": "examples/day05-long-error.txt"
+            },
+            {
+              "label": "Journal",
+              "path": "learner/journal/PROGRESS.md"
+            }
+          ],
+          "outcome": "Journal answers all four questions in plain language.",
+          "journalGuide": "Long prompts test \u201clost in the middle\u201d: instructions at the start and facts at the end may not both survive when filler consumes the budget. MAGICEND at the tail is deliberate\u2014if the model answers something else, it likely never attended to the end.\n\nfinish_reason length often means generation hit a cap\u2014not necessarily that the input fit. Errors may mean the server refused oversize input. Relate what you saw to ~4096 tokens as a mental model, not magic."
+        },
+        {
+          "id": "6",
+          "title": "Reflect \u2014 mitigation",
+          "body": "Write one paragraph in your journal: How do chunking + retrieval fix \u201cwhole document in one prompt\u201d? Name what still fits in the context window after retrieval (system + chunks + user question + answer).",
+          "why": "Connects bootstrap pain to curriculum arc.",
+          "outcome": "You can explain RAG\u2019s purpose without buzzwords.",
+          "journalGuide": "RAG is not a buzzword\u2014it is an engineering response to context limits. Instead of one megabyte user message, you chunk documents, embed chunks, retrieve top-k relevant pieces, and inject only those into messages[]. The model then answers from a small evidence set.\n\nChunking strategy (size, overlap), embedding model choice, and retrieval quality all matter as much as the LLM call. Phase 2 walks those pieces; today you journal the motivation so Phase 2 feels necessary, not optional.",
+          "links": [
+            {
+              "label": "Journal",
+              "path": "learner/journal/PROGRESS.md"
+            }
+          ]
+        },
+        {
+          "id": "7",
+          "title": "Close out",
+          "body": "Mark done. You have felt context limits, not just read about them.",
+          "why": "Day 6 picks direction for the rest of the lab.",
+          "outcome": "Day 5 complete."
+        }
+      ],
+      "reference": {
+        "model": "lfm3",
+        "workingContext": "~4096 tokens (curriculum)",
+        "artifacts": "examples/day05-long-prompt.txt"
+      }
+    },
+    {
+      "id": "day-6",
+      "number": 6,
+      "title": "Roadmap & capstone",
+      "phase": 0,
+      "phaseLabel": "Bootstrap",
+      "timeBoxMinutes": 30,
+      "summary": "Pick a capstone and map Phase 1\u20132 skills using ROADMAP Decide first.",
+      "resources": [
+        "daily",
+        "open"
+      ],
+      "steps": [
+        {
+          "id": "1",
+          "title": "Why Day 6 \u2014 connect skills to a capstone",
+          "durationMinutes": 5,
+          "body": "Scenario: Phase 0 taught the wire protocol; Phase 1\u20135 teach depth. Without a chosen outcome, daily exercises feel random.\n\nToday you pick a capstone track and map Phase 1\u20132 skills to it using ROADMAP\u2019s Decide first table.",
+          "why": "Purpose improves retention more than extra curl.",
+          "links": [
+            {
+              "label": "ROADMAP",
+              "path": "docs/guides/ROADMAP.md"
+            }
+          ]
+        },
+        {
+          "id": "2",
+          "title": "Exercise \u2014 Decide first table",
+          "body": "In your journal, write: \u201cDecide first: for [your capstone need], I will try [column/technique] first because \u2026\u201d (2\u20133 sentences of reasoning).",
+          "why": "Teams retrieve before fine-tune; workflows before full autonomy.",
+          "links": [
+            {
+              "label": "ROADMAP Decide first",
+              "path": "docs/guides/ROADMAP.md"
+            },
+            {
+              "label": "Journal",
+              "path": "learner/journal/PROGRESS.md"
+            }
+          ],
+          "outcome": "Journal cites one row from the table with your project in mind.",
+          "journalGuide": "ROADMAP\u2019s \u201cDecide first\u201d table is a prioritization guardrail. Teams often jump to fine-tuning or agents when retrieval or a simple workflow would ship faster. Reading the table with your capstone in mind forces a explicit bet: which column matches your first user value?\n\nQuote or paraphrase one row: need (facts, JSON, tools, process) \u2192 first technique to try. That sentence becomes your north star when Phase 1\u20132 offer many shiny options."
+        },
+        {
+          "id": "3",
+          "title": "Exercise \u2014 pick capstone track",
+          "body": "Set your journal header (top of today\u2019s entry) to: \u201cCapstone track: [Dev platform | Knowledge product | Automation | Learning lab]\u201d. Add one sentence why this track fits your real work or curiosity.",
+          "why": "Default choice beats endless debate.",
+          "outcome": "One track name written in journal header.",
+          "journalGuide": "A capstone track is a label for scope, not a contract. Dev platform = tools, IDE, codegen; Knowledge product = RAG, citations, search; Automation = workflows, cron, integrations; Learning lab = extend this repo and document experiments.\n\nPick one for the next weeks\u2014you can change it at Phase boundaries, but indecision wastes daily 30-minute blocks. Write the track name where future-you will see it (journal header or PROGRESS table).",
+          "links": [
+            {
+              "label": "Journal",
+              "path": "learner/journal/PROGRESS.md"
+            }
+          ]
+        },
+        {
+          "id": "4",
+          "title": "Exercise \u2014 three bullets + phase map",
+          "body": "Journal exactly four bullets:\n1) Capstone in one sentence\n2) Phase 1 unlocks \u2026 (specific, not generic)\n3) Phase 2 unlocks \u2026\n4) Biggest risk if you skip fundamentals",
+          "why": "Four bullets still fit 30 minutes if you stay terse.",
+          "links": [
+            {
+              "label": "COVERAGE",
+              "path": "docs/guides/COVERAGE.md"
+            },
+            {
+              "label": "Journal",
+              "path": "learner/journal/PROGRESS.md"
+            }
+          ],
+          "outcome": "Journal entry you can reread before Day 8.",
+          "journalGuide": "Four bullets connect Phase 0 skills to Phase 1\u20132 depth. Phase 1 (SLMs, quantization, clients) explains how lfm3 runs locally and how your code calls it. Phase 2 (RAG) explains how to give models facts without infinite context. Naming \u201cbiggest risk\u201d early prevents fantasy architectures.\n\nThis entry is what you reread on Day 8 when GGUF and memory math feel abstract\u2014tie every Phase 1 topic back to the capstone sentence."
+        },
+        {
+          "id": "5",
+          "title": "Learn \u2014 what Day 8 starts",
+          "body": "Phase 1 Day 8: GGUF & quantization\u2014how lfm3 fits in memory and on disk.",
+          "why": "Sets expectation after bootstrap.",
+          "links": [
+            {
+              "label": "Daily progress",
+              "path": "docs/guides/DAILY_30MIN.md"
+            }
+          ],
+          "outcome": "You know the next technical topic after Phase 0."
+        },
+        {
+          "id": "6",
+          "title": "Close out",
+          "body": "Mark done. Day 7 is timed review of Days 2\u20133.",
+          "why": "Muscle memory before quantization math.",
+          "outcome": "Day 6 complete."
+        }
+      ],
+      "reference": {
+        "artifact": "journal capstone bullets",
+        "guide": "docs/guides/ROADMAP.md"
+      }
+    },
+    {
+      "id": "day-7",
+      "number": 7,
+      "title": "Phase 0 review",
+      "phase": 0,
+      "phaseLabel": "Bootstrap",
+      "timeBoxMinutes": 30,
+      "summary": "Timed demo of batch + stream; self-score Phase 0 exit rubric.",
+      "resources": [
+        "runtime",
+        "daily"
+      ],
+      "steps": [
+        {
+          "id": "1",
+          "title": "Why Day 7 \u2014 prove bootstrap skills",
+          "durationMinutes": 3,
+          "body": "Scenario: You join a pairing session and must demo local inference in five minutes without docs.\n\nToday you time yourself on batch + stream flows and self-score Phase 0 exit criteria.",
+          "why": "If this is hard, repeat weak days before Phase 1.",
+          "commands": [
+            "./server.sh"
+          ]
+        },
+        {
+          "id": "2",
+          "title": "Timed demo \u2014 batch chat (< 5 min)",
+          "body": "From memory: POST Hello, print content only.",
+          "why": "Mirrors Day 2 integration path.",
+          "commands": [
+            "curl -s http://127.0.0.1:11434/v1/chat/completions \\",
+            "  -H \"Content-Type: application/json\" \\",
+            "  -d '{\"model\":\"lfm3\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}' \\",
+            "  | python3 -c \"import json,sys; d=json.load(sys.stdin); print(d['choices'][0]['message']['content'])\""
+          ],
+          "outcome": "Completed under 5 minutes including server check."
+        },
+        {
+          "id": "3",
+          "title": "Timed demo \u2014 stream (< 5 min)",
+          "body": "stream:true, -N, show last lines include [DONE].",
+          "why": "Mirrors Day 3 product path.",
+          "commands": [
+            "curl -N -s http://127.0.0.1:11434/v1/chat/completions \\",
+            "  -H \"Content-Type: application/json\" \\",
+            "  -d '{\"model\":\"lfm3\",\"messages\":[{\"role\":\"user\",\"content\":\"Count 1 to 3.\"}],\"stream\":true}' | tail -2"
+          ],
+          "outcome": "You see data: lines and [DONE]."
+        },
+        {
+          "id": "4",
+          "title": "Self-check \u2014 exit rubric",
+          "body": "Say each term aloud once, then in your journal create a table:\nConcept | yes / partial / no | one-line proof (what you would demo)\nRows: token, context window, stream vs batch, base URL, model id.\nIf any partial/no, note which day to redo.",
+          "why": "Matches phase0 exit criteria.",
+          "links": [
+            {
+              "label": "phase0.md",
+              "path": "docs/guides/phase0.md"
+            },
+            {
+              "label": "Journal",
+              "path": "learner/journal/PROGRESS.md"
+            }
+          ],
+          "outcome": "At least four yes; re-study any partial.",
+          "journalGuide": "Phase 0 exit criteria are operational, not academic. You should be able to explain token, context window, stream vs batch, base URL, and model id without opening docs\u2014because on-call and pairing sessions do not wait for grep.\n\nSelf-grade honestly: \u201cpartial\u201d means repeat the weak day before Phase 1. Journal yes/partial/no creates a checklist you can paste into PROGRESS.md when you mark Phase 0 complete."
+        },
+        {
+          "id": "5",
+          "title": "Reflect \u2014 artifacts",
+          "body": "Open both artifacts. In your journal write one sentence: \u201cSince Day 1, the biggest change in my understanding is \u2026\u201d Be specific (tokens, reasoning, streaming, context)\u2014not \u201cI learned a lot.\u201d",
+          "why": "Closure before Phase 1.",
+          "links": [
+            {
+              "label": "Day 2 JSON",
+              "path": "examples/day02-response.json"
+            },
+            {
+              "label": "Day 3 note",
+              "path": "examples/day03-streaming.txt"
+            },
+            {
+              "label": "Journal",
+              "path": "learner/journal/PROGRESS.md"
+            }
+          ],
+          "outcome": "Journal sentence saved.",
+          "journalGuide": "Artifacts beat memory. day02-response.json captured your first structured chat response; day03-streaming.txt captured how streaming felt on the wire. Re-reading them after seven days shows how much mental model you built beyond copy-paste.\n\nA good reflection names something you misunderstood on Day 1 that is obvious now\u2014or something that is still fuzzy and needs Phase 1."
+        },
+        {
+          "id": "6",
+          "title": "Close Phase 0",
+          "body": "Mark Day 7 done. Celebrate bootstrap complete\u2014Phase 1 adds SLM depth and a Python client.",
+          "why": "You can operate local lfm3 like a microservice.",
+          "links": [
+            {
+              "label": "Daily progress",
+              "path": "docs/guides/DAILY_30MIN.md"
+            }
+          ],
+          "outcome": "Phase 0 days show done in Daily progress when all steps complete."
+        }
+      ],
+      "reference": {
+        "apiBase": "http://127.0.0.1:11434/v1",
+        "model": "lfm3",
+        "nextPhase": "Phase 1 \u2014 Day 8 GGUF & quantization"
+      }
+    }
+  ]
+}

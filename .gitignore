@@ -18,13 +18,13 @@ build/
 .env.*
 !.env.example
 
+# Logs (server.sh may write ollama-serve.log here)
+logs/
+
 # Data & indexes (add paths as RAG grows)
 data/corpus/
 data/index/
 data/chunks.jsonl
-logs/
-
-# OS & editors
 .DS_Store
 .idea/
 .vscode/
@@ -32,3 +32,15 @@ logs/
 # Model caches (never commit weights)
 *.gguf
 *.bin
+
+# One learner's checkmarks (shared curriculum is curriculum/curriculum.json)
+learner/progress.json
+learner/progress.json.tmp
+
+# Dated journal notes stay on your machine
+learner/journal/20*.md
+
+# Exercise runs other than the committed Day 2 sample
+examples/*
+!examples/README.md
+!examples/day02-response.json

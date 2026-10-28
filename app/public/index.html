@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AILab — Roadmap</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="layout">
+      <aside class="sidebar">
+        <header class="brand">
+          <p class="eyebrow">AILab</p>
+          <h1>Roadmap</h1>
+          <p class="muted" id="subtitle">Loading…</p>
+        </header>
+        <nav id="day-nav" class="phase-nav" aria-label="Phases and days"></nav>
+        <section class="panel resources-panel">
+          <h2>Learning resources</h2>
+          <ul id="global-resources"></ul>
+        </section>
+        <p class="save-hint muted" id="save-status">
+          Progress is stored in learner/progress.json (survives server restarts).
+        </p>
+      </aside>
+      <main class="main" id="main">
+        <p class="muted">Loading curriculum…</p>
+      </main>
+    </div>
+    <script src="/app.js?v=10" type="module"></script>
+  </body>
+</html>
