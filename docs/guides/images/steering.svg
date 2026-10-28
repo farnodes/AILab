@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 210" role="img">
+  <rect width="720" height="210" fill="#fff"/>
+  <text x="360" y="28" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" font-size="14">Same model · same user question · two policies</text>
+  <rect x="16" y="48" width="332" height="140" fill="#f5f5f5" stroke="#000"/>
+  <text x="182" y="76" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" font-size="16" font-weight="700">Incident bot</text>
+  <text x="182" y="104" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" font-size="14">system: max 15 words</text>
+  <text x="182" y="128" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" font-size="14">temperature 0</text>
+  <text x="182" y="160" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13">shorter, more repeatable</text>
+  <rect x="372" y="48" width="332" height="140" fill="#000"/>
+  <text x="538" y="76" text-anchor="middle" fill="#fff" font-family="ui-sans-serif, system-ui, sans-serif" font-size="16" font-weight="700">Coach</text>
+  <text x="538" y="104" text-anchor="middle" fill="#fff" font-family="ui-sans-serif, system-ui, sans-serif" font-size="14">system: two short paragraphs</text>
+  <text x="538" y="128" text-anchor="middle" fill="#fff" font-family="ui-sans-serif, system-ui, sans-serif" font-size="14">temperature 1</text>
+  <text x="538" y="160" text-anchor="middle" fill="#fff" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13">warmer, usually more tokens</text>
+</svg>

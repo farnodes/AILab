@@ -15,3 +15,5 @@ When the user opens this project, asks **what next**, **recap**, **revision**, o
 User entry doc: `OPEN.md`.
 
 This repo is the open roadmap at `github.com/farnodes/AILab`. Shared days live in `curriculum/curriculum.json`. A learner’s checkmarks live in `learner/progress.json` and are not committed.
+
+When **adding or improving days**, chapters, exercises, or submission Q&A, read and follow `.cursor/skills/ailab-curriculum-day/SKILL.md`.

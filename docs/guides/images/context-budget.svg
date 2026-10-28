@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 230" role="img">
+  <rect width="720" height="230" fill="#fff"/>
+  <text x="24" y="32" font-family="ui-sans-serif, system-ui, sans-serif" font-size="14" font-weight="700">One call · about 4096 tokens in this lab</text>
+  <rect x="24" y="48" width="440" height="56" fill="#f5f5f5" stroke="#000"/>
+  <text x="244" y="82" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" font-size="15">messages you send</text>
+  <rect x="464" y="48" width="232" height="56" fill="#000"/>
+  <text x="580" y="74" text-anchor="middle" fill="#fff" font-family="ui-sans-serif, system-ui, sans-serif" font-size="14">reply</text>
+  <text x="580" y="92" text-anchor="middle" fill="#fff" font-family="ui-sans-serif, system-ui, sans-serif" font-size="12">including reasoning</text>
+  <rect x="24" y="128" width="520" height="48" fill="#fff" stroke="#000" stroke-dasharray="4 3"/>
+  <text x="284" y="158" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" font-size="14">a whole PDF or repo</text>
+  <line x1="560" y1="128" x2="680" y2="176" stroke="#000" stroke-width="3"/>
+  <line x1="680" y1="128" x2="560" y2="176" stroke="#000" stroke-width="3"/>
+  <text x="24" y="210" font-family="ui-sans-serif, system-ui, sans-serif" font-size="14">Too big: error, cut-off reply, or the middle of the prompt disappears. 4096 is the course cap, not a measurement.</text>
+</svg>

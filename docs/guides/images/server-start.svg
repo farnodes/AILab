@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 180" role="img">
+  <rect width="720" height="180" fill="#fff"/>
+  <rect x="16" y="36" width="200" height="88" fill="#f5f5f5" stroke="#000"/>
+  <text x="116" y="68" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" font-size="14" font-weight="700">1 · Start</text>
+  <text x="116" y="92" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13">If port 11434 is</text>
+  <text x="116" y="110" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13">closed, launch Ollama</text>
+  <line x1="216" y1="80" x2="248" y2="80" stroke="#000" stroke-width="2"/>
+  <polygon points="248,74 260,80 248,86" fill="#000"/>
+  <rect x="260" y="36" width="200" height="88" fill="#f5f5f5" stroke="#000"/>
+  <text x="360" y="68" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" font-size="14" font-weight="700">2 · Pull</text>
+  <text x="360" y="92" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13">Download lfm3</text>
+  <text x="360" y="110" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13">the first time only</text>
+  <line x1="460" y1="80" x2="492" y2="80" stroke="#000" stroke-width="2"/>
+  <polygon points="492,74 504,80 492,86" fill="#000"/>
+  <rect x="504" y="36" width="200" height="88" fill="#000"/>
+  <text x="604" y="68" text-anchor="middle" fill="#fff" font-family="ui-sans-serif, system-ui, sans-serif" font-size="14" font-weight="700">3 · Warm</text>
+  <text x="604" y="92" text-anchor="middle" fill="#fff" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13">One short request</text>
+  <text x="604" y="110" text-anchor="middle" fill="#fff" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13">loads the model</text>
+  <text x="360" y="156" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" font-size="14">Ready = banner shows 11434 and lfm3</text>
+</svg>

@@ -1,4 +1,11 @@
 import { renderMarkdown } from "./markdown.js";
+import {
+  submissionQuestions,
+  emptyAnswers,
+  normalizeLoadedSubmission,
+  validateAnswers,
+  isMcqQuestion,
+} from "./submission.js";
 
 const COPY_ICON = `<svg class="copy-icon" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>`;
 const CHECK_ICON = `<svg class="copy-icon" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>`;
@@ -313,14 +320,14 @@ async function openDay(dayId, stepIndex) {
     if (!ok) {
       rememberView(dayId, step);
       renderDayNav();
-      renderDay(dayId, idx);
+      await renderDay(dayId, idx);
       return;
     }
   }
   if (seq !== openSeq) return;
   rememberView(dayId, step);
   renderDayNav();
-  renderDay(dayId, idx);
+  await renderDay(dayId, idx);
 }
 
 function attachResetControl(dayRow, dayId, day) {
@@ -429,6 +436,20 @@ function renderStepCard(day, dayId, step, dp) {
   label.textContent = STATUS_LABELS[st] || st;
   head.appendChild(label);
   card.appendChild(head);
+  if (step.figure) {
+    const fig = document.createElement("figure");
+    fig.className = "step-figure";
+    const img = document.createElement("img");
+    img.src = repoFileUrl(step.figure);
+    img.alt = step.figureAlt || "";
+    fig.appendChild(img);
+    if (step.figureAlt) {
+      const cap = document.createElement("figcaption");
+      cap.textContent = step.figureAlt;
+      fig.appendChild(cap);
+    }
+    card.appendChild(fig);
+  }
   if (step.durationMinutes) {
     const d = document.createElement("p");
     d.className = "muted";
@@ -438,7 +459,7 @@ function renderStepCard(day, dayId, step, dp) {
   if (step.journalGuide) {
     const jHead = document.createElement("p");
     jHead.className = "journal-label";
-    jHead.textContent = "Read first — journal guide";
+    jHead.textContent = "Background";
     card.appendChild(jHead);
     const guide = document.createElement("div");
     guide.className = "step-journal-guide";
@@ -514,7 +535,301 @@ function renderStepCard(day, dayId, step, dp) {
   return card;
 }
 
-function renderDay(dayId, stepIndexOverride) {
+function formatSubmissionSaved(iso) {
+  if (!iso) return "";
+  try {
+    const d = new Date(iso);
+    return d.toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" });
+  } catch {
+    return iso;
+  }
+}
+
+async function attachSubmission(card, dayId, step) {
+  if (!step?.submission) return null;
+  const questions = submissionQuestions(step);
+  const wrap = document.createElement("div");
+  wrap.className = "step-submission";
+  wrap.dataset.savedValid = "false";
+
+  const label = document.createElement("p");
+  label.className = "submission-label";
+  label.textContent = questions
+    ? "Exercise answers (required before marking done)"
+    : "Your answer (saved locally only)";
+  wrap.appendChild(label);
+
+  const hint = document.createElement("p");
+  hint.className = "muted submission-hint";
+  hint.textContent =
+    "Saved to learner/submissions/ on this machine only — gitignored, never pushed.";
+  wrap.appendChild(hint);
+
+  const form = document.createElement("div");
+  form.className = "submission-form";
+  const fields = new Map();
+  const errorEls = new Map();
+
+  function collectAnswers() {
+    if (questions) {
+      const answers = {};
+      for (const q of questions) {
+        const el = fields.get(q.id);
+        if (el && el.kind === "mcq") {
+          const checked = form.querySelector(`input[name="${el.name}"]:checked`);
+          answers[q.id] = checked ? checked.value : "";
+        } else if (el && el.value !== undefined) {
+          answers[q.id] = el.value;
+        } else {
+          answers[q.id] = "";
+        }
+      }
+      return answers;
+    }
+    const ta = fields.get("_content");
+    return ta ? ta.value : "";
+  }
+
+  function setFieldValue(q, value) {
+    const el = fields.get(q.id);
+    if (!el) return;
+    if (el.kind === "mcq") {
+      const radio = form.querySelector(
+        `input[name="${el.name}"][value="${CSS.escape(value)}"]`
+      );
+      if (radio) radio.checked = true;
+    } else {
+      el.value = value || "";
+    }
+  }
+
+  function showFieldErrors(fieldErrors) {
+    for (const [qid, errEl] of errorEls) {
+      const msg = fieldErrors[qid];
+      errEl.textContent = msg || "";
+      errEl.hidden = !msg;
+      const el = fields.get(qid);
+      if (el?.kind === "mcq") {
+        el.fieldset.classList.toggle("invalid", Boolean(msg));
+      } else if (el?.classList) {
+        el.classList.toggle("invalid", Boolean(msg));
+      }
+    }
+  }
+
+  function runValidation() {
+    if (!questions) return { ok: true, fieldErrors: {} };
+    return validateAnswers(questions, collectAnswers());
+  }
+
+  if (questions) {
+    questions.forEach((q, idx) => {
+      const block = document.createElement("div");
+      block.className = "submission-field";
+
+      const qLabel = document.createElement("label");
+      qLabel.className = "submission-q-label";
+      qLabel.htmlFor = `sub-${dayId}-${step.id}-${q.id}`;
+      qLabel.textContent = `${idx + 1}. ${q.label}`;
+      block.appendChild(qLabel);
+
+      if (q.hint) {
+        const qHint = document.createElement("p");
+        qHint.className = "muted submission-q-hint";
+        qHint.textContent = q.hint;
+        block.appendChild(qHint);
+      }
+
+      const err = document.createElement("p");
+      err.className = "submission-field-error";
+      err.hidden = true;
+
+      let input;
+      if (isMcqQuestion(q)) {
+        const fieldset = document.createElement("fieldset");
+        fieldset.className = "submission-mcq";
+        const name = `sub-${dayId}-${step.id}-${q.id}`;
+        (q.options || []).forEach((opt, oi) => {
+          const optLabel = document.createElement("label");
+          optLabel.className = "submission-mcq-option";
+          const radio = document.createElement("input");
+          radio.type = "radio";
+          radio.name = name;
+          radio.value = opt.id;
+          radio.id = `${name}-opt-${oi}`;
+          optLabel.appendChild(radio);
+          const span = document.createElement("span");
+          span.textContent = opt.label || opt.id;
+          optLabel.appendChild(span);
+          radio.addEventListener("change", () => {
+            wrap.dataset.savedValid = "false";
+            const v = runValidation();
+            showFieldErrors(v.fieldErrors);
+          });
+          fieldset.appendChild(optLabel);
+        });
+        fields.set(q.id, { kind: "mcq", name, fieldset });
+        errorEls.set(q.id, err);
+        block.appendChild(fieldset);
+        block.appendChild(err);
+        form.appendChild(block);
+        return;
+      }
+      if (q.input === "text") {
+        input = document.createElement("input");
+        input.type = "text";
+        input.className = "submission-input submission-input-text";
+      } else {
+        input = document.createElement("textarea");
+        input.className = "submission-input";
+        input.rows = q.rows || 4;
+      }
+      input.id = qLabel.htmlFor;
+      input.spellcheck = true;
+      input.autocomplete = "off";
+      if (q.required !== false) input.required = true;
+      if (q.minLength) input.minLength = q.minLength;
+      if (q.maxLength) input.maxLength = q.maxLength;
+
+      input.addEventListener("input", () => {
+        wrap.dataset.savedValid = "false";
+        const v = runValidation();
+        if (v.fieldErrors[q.id]) showFieldErrors(v.fieldErrors);
+        else {
+          err.hidden = true;
+          input.classList.remove("invalid");
+        }
+      });
+      input.addEventListener("blur", () => {
+        const v = runValidation();
+        showFieldErrors(v.fieldErrors);
+      });
+
+      fields.set(q.id, input);
+      errorEls.set(q.id, err);
+      block.appendChild(input);
+      block.appendChild(err);
+      form.appendChild(block);
+    });
+  } else {
+    const ta = document.createElement("textarea");
+    ta.className = "submission-input";
+    ta.rows = step.submissionRows || 8;
+    ta.spellcheck = true;
+    if (step.submissionPlaceholder) ta.placeholder = step.submissionPlaceholder;
+    fields.set("_content", ta);
+    form.appendChild(ta);
+  }
+
+  wrap.appendChild(form);
+
+  const row = document.createElement("div");
+  row.className = "submission-actions";
+  const saveBtn = document.createElement("button");
+  saveBtn.type = "button";
+  saveBtn.className = "pager-btn primary";
+  saveBtn.textContent = "Save locally";
+  const status = document.createElement("span");
+  status.className = "muted submission-status";
+  row.appendChild(saveBtn);
+  row.appendChild(status);
+  wrap.appendChild(row);
+
+  card.appendChild(wrap);
+
+  const params = new URLSearchParams({ dayId, stepId: String(step.id) });
+  try {
+    const res = await fetch(`/api/submissions?${params}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (questions) {
+        const answers = normalizeLoadedSubmission(data, questions);
+        for (const q of questions) {
+          setFieldValue(q, answers[q.id] || "");
+        }
+        const v = runValidation();
+        if (v.ok && data.updatedAt) {
+          wrap.dataset.savedValid = "true";
+          status.textContent = `Saved · ${formatSubmissionSaved(data.updatedAt)}`;
+        }
+      } else {
+        const ta = fields.get("_content");
+        if (ta) ta.value = data.content || "";
+        if (data.updatedAt) {
+          wrap.dataset.savedValid = "true";
+          status.textContent = `Saved · ${formatSubmissionSaved(data.updatedAt)}`;
+        }
+      }
+    }
+  } catch {
+    status.textContent = "Could not load saved answers.";
+  }
+
+  saveBtn.addEventListener("click", async () => {
+    const v = runValidation();
+    showFieldErrors(v.fieldErrors);
+    if (!v.ok) {
+      status.textContent = "Fix the highlighted answers, then save.";
+      status.classList.add("error");
+      return;
+    }
+
+    saveBtn.disabled = true;
+    status.textContent = "Saving…";
+    status.classList.remove("error");
+    try {
+      const payload = {
+        dayId,
+        stepId: String(step.id),
+      };
+      if (questions) payload.answers = collectAnswers();
+      else payload.content = collectAnswers();
+
+      const res = await fetch("/api/submissions", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        if (data.fieldErrors) showFieldErrors(data.fieldErrors);
+        if (
+          data.error === "content must be a string" &&
+          questions
+        ) {
+          status.textContent =
+            "Server needs a restart: stop ./lab-ui.sh, start it again, then hard-refresh the page.";
+        } else {
+          status.textContent = data.error || "Save failed.";
+        }
+        status.classList.add("error");
+        wrap.dataset.savedValid = "false";
+        return;
+      }
+      status.classList.remove("error");
+      status.textContent = `Saved · ${formatSubmissionSaved(data.updatedAt)}`;
+      wrap.dataset.savedValid = "true";
+    } catch {
+      status.textContent = "Save failed — is ./lab-ui.sh running?";
+      status.classList.add("error");
+      wrap.dataset.savedValid = "false";
+    } finally {
+      saveBtn.disabled = false;
+    }
+  });
+
+  wrap.validateForDone = () => {
+    const v = runValidation();
+    showFieldErrors(v.fieldErrors);
+    if (!v.ok) return { ok: false, reason: "invalid" };
+    if (wrap.dataset.savedValid !== "true") return { ok: false, reason: "unsaved" };
+    return { ok: true };
+  };
+
+  return wrap;
+}
+
+async function renderDay(dayId, stepIndexOverride) {
   const day = dayById(dayId);
   const main = document.getElementById("main");
   if (!day) {
@@ -631,7 +946,12 @@ function renderDay(dayId, stepIndexOverride) {
 
   const stepsEl = document.createElement("div");
   stepsEl.className = "steps steps-single";
-  if (step) stepsEl.appendChild(renderStepCard(day, dayId, step, dp));
+  if (step) {
+    const card = renderStepCard(day, dayId, step, dp);
+    const submissionWrap = await attachSubmission(card, dayId, step);
+    card.submissionWrap = submissionWrap;
+    stepsEl.appendChild(card);
+  }
   frag.appendChild(stepsEl);
 
   const actions = document.createElement("div");
@@ -650,6 +970,28 @@ function renderDay(dayId, stepIndexOverride) {
   markDone.disabled = !step || stepStatus(dp, step.id) === "done";
   markDone.addEventListener("click", async () => {
     if (!step) return;
+    const sub = step.submission ? document.querySelector(".step-submission") : null;
+    if (sub?.validateForDone) {
+      const check = sub.validateForDone();
+      if (!check.ok && check.reason === "invalid") {
+        const st = document.querySelector(".submission-status");
+        if (st) {
+          st.textContent = "Complete and fix all answers before marking done.";
+          st.classList.add("error");
+        }
+        sub.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        return;
+      }
+      if (!check.ok && check.reason === "unsaved") {
+        const st = document.querySelector(".submission-status");
+        if (st) {
+          st.textContent = "Click Save locally before marking done.";
+          st.classList.add("error");
+        }
+        sub.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        return;
+      }
+    }
     const ok = await patchProgress({
       dayId,
       activeDayId: dayId,
@@ -720,7 +1062,7 @@ async function openDoc(path) {
   try {
     const res = await fetch(repoFileUrl(path));
     if (!res.ok) throw new Error(`Could not load (${res.status})`);
-    body.innerHTML = renderMarkdown(await res.text());
+    body.innerHTML = renderMarkdown(await res.text(), path);
     bindDocLinks(body, path);
   } catch (e) {
     body.textContent = e.message;

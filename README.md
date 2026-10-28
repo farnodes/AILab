@@ -17,7 +17,7 @@ You need [Ollama](https://ollama.com/download) and Python 3. The website uses th
 
 ## How progress works
 
-The shared curriculum is [curriculum/curriculum.json](curriculum/curriculum.json). Your checkmarks are [learner/progress.json](learner/progress.json). That file is created on first run and is not part of the shared repo, so your place in the roadmap stays on your machine when you pull other people’s tracks.
+The shared curriculum is [curriculum/curriculum.json](curriculum/curriculum.json). Your checkmarks are [learner/progress.json](learner/progress.json). Exercise answers from **Save locally** in the UI go to [learner/submissions/](learner/submissions/) (see the README there). Those paths are gitignored, so your progress and answers stay on your machine when you pull other people’s tracks.
 
 ## Add a track or use case
 

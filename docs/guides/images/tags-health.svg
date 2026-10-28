@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 200" role="img">
+  <rect width="720" height="200" fill="#fff"/>
+  <text x="24" y="28" font-family="ui-sans-serif, system-ui, sans-serif" font-size="14" font-weight="700">GET /api/tags</text>
+  <rect x="16" y="40" width="320" height="140" fill="#f5f5f5" stroke="#000"/>
+  <text x="32" y="72" font-family="ui-monospace, monospace" font-size="13">{"models": [</text>
+  <text x="48" y="96" font-family="ui-monospace, monospace" font-size="13">{"name": "lfm3:latest"}</text>
+  <text x="32" y="120" font-family="ui-monospace, monospace" font-size="13">]}</text>
+  <text x="32" y="156" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13" fill="#0a0">Success  JSON with a models array</text>
+  <rect x="384" y="40" width="320" height="140" fill="#fff" stroke="#000"/>
+  <text x="400" y="72" font-family="ui-monospace, monospace" font-size="13">curl: (7) Failed to connect</text>
+  <text x="400" y="100" font-family="ui-monospace, monospace" font-size="13">connection refused</text>
+  <text x="400" y="156" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13" fill="#a00">Failure  run ./server.sh first</text>
+</svg>

@@ -20,9 +20,15 @@ Topics follow **Phase 0 → 1 → 2 → 3 → 4 → 5**: bootstrap → SLM & cli
 
 ## Before Day 1
 
-- [ ] Model ready: `./server.sh`
+- [ ] Model ready: `./server.sh` (first pull of `lfm3` may take **45–60 min**; later runs ~30 min)
 - [ ] `learner/journal/` exists (copy `PROGRESS.md` if you are starting fresh)
-- [ ] Capstone track chosen ([ROADMAP](./ROADMAP.md))
+- [ ] Roadmap UI: `./lab-ui.sh` → http://127.0.0.1:8765
+
+---
+
+## Before Day 6
+
+- [ ] Skim capstone tracks in [ROADMAP](./ROADMAP.md) — you pick a track on Day 6
 
 ---
 
@@ -30,11 +36,11 @@ Topics follow **Phase 0 → 1 → 2 → 3 → 4 → 5**: bootstrap → SLM & cli
 
 | Day | Topic | Hands-on (22 min) | Done |
 |-----|--------|-------------------|------|
-| **1** | Ollama & API | `ollama list`; `curl /api/tags`; define token & context in journal | Journal |
+| **1** | Ollama & API | `ollama list`; `curl /api/tags`; token & context via **Save locally** (gitignored) | Journal |
 | **2** | Chat JSON | `POST /v1/chat/completions` model `lfm3`; save `examples/day02-response.json` | File |
 | **3** | Streaming | `stream: true`; time to first token | Timing note |
 | **4** | Sampling preview | Terse vs verbose system prompt (temp 0 vs 1 if supported) | Compare |
-| **5** | Context limit | Long prompt vs `-c 4096` | Behavior known |
+| **5** | Context limit | Tiny prompt, then the MAGICEND long prompt | You saw miss or error |
 | **6** | Roadmap | “Decide first” table + capstone needs | 3 bullets |
 | **7** | Review | Repeat Days 2–3 in &lt; 5 min | Demo |
 

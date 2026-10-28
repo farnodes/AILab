@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 200" role="img">
+  <rect width="720" height="200" fill="#fff"/>
+  <text x="24" y="28" font-family="ui-sans-serif, system-ui, sans-serif" font-size="14" font-weight="700">Same request, stream: true — many lines, then done</text>
+  <line x1="40" y1="110" x2="680" y2="110" stroke="#000" stroke-width="2"/>
+  <circle cx="80" cy="110" r="8" fill="#000"/>
+  <text x="80" y="78" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13" font-weight="700">first byte</text>
+  <text x="80" y="148" text-anchor="middle" font-family="ui-monospace, monospace" font-size="12">reasoning</text>
+  <circle cx="250" cy="110" r="8" fill="#000"/>
+  <text x="250" y="78" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13" font-weight="700">later</text>
+  <text x="250" y="148" text-anchor="middle" font-family="ui-monospace, monospace" font-size="12">content</text>
+  <circle cx="420" cy="110" r="8" fill="#000"/>
+  <text x="420" y="78" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13" font-weight="700">last chunk</text>
+  <text x="420" y="148" text-anchor="middle" font-family="ui-monospace, monospace" font-size="12">finish_reason</text>
+  <circle cx="600" cy="110" r="8" fill="#fff" stroke="#000" stroke-width="2"/>
+  <text x="600" y="78" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13" font-weight="700">end</text>
+  <text x="600" y="148" text-anchor="middle" font-family="ui-monospace, monospace" font-size="12">[DONE]</text>
+  <text x="24" y="184" font-family="ui-sans-serif, system-ui, sans-serif" font-size="14">Join only delta.content for the bubble. On LFM3 the first chunk is often reasoning.</text>
+</svg>

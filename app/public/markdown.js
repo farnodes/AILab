@@ -10,8 +10,22 @@ export function readerHref(path) {
   return `/reader.html?path=${encodeURIComponent(path)}`;
 }
 
-/** Small markdown subset for lab docs (headings, lists, code, links, tables). */
-export function renderMarkdown(source) {
+export function assetUrl(href, basePath) {
+  if (!href || href.startsWith("http") || href.startsWith("/")) return href;
+  const stack = String(basePath || "")
+    .split("/")
+    .filter(Boolean)
+    .slice(0, -1);
+  for (const part of href.split("/")) {
+    if (!part || part === ".") continue;
+    if (part === "..") stack.pop();
+    else stack.push(decodeURIComponent(part));
+  }
+  return `/repo/${stack.map(encodeURIComponent).join("/")}`;
+}
+
+/** Small markdown subset for lab docs (headings, lists, code, links, tables, images). */
+export function renderMarkdown(source, basePath = "") {
   const lines = source.replace(/\r\n/g, "\n").split("\n");
   const out = [];
   let i = 0;
@@ -89,6 +103,17 @@ export function renderMarkdown(source) {
         i++;
       }
       out.push(`<ol>${items.join("")}</ol>`);
+      continue;
+    }
+
+    const image = line.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
+    if (image) {
+      const src = assetUrl(image[2].trim(), basePath);
+      const alt = escapeHtml(image[1]);
+      out.push(
+        `<figure class="doc-figure"><img src="${escapeHtml(src)}" alt="${alt}" /><figcaption>${alt}</figcaption></figure>`
+      );
+      i++;
       continue;
     }
 

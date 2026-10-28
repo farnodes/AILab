@@ -37,6 +37,12 @@ Source of truth: [curriculum.json](curriculum.json). The website reads this file
 | `why` | Why this step exists. |
 | `links` | `{ "label", "path" }` repo-relative files the reader can open. |
 | `outcome` | Optional. How you know the step worked. |
+| `figure`, `figureAlt` | Optional infographic under the step title. Repo-relative path. |
+| `submission` | If `true`, the UI shows a **Save locally** form → `learner/submissions/<day>/step-<id>.json` (gitignored). |
+| `submissionQuestions` | List of `{ id, label, hint?, input?: textarea\|text\|mcq, rows?, required?, minLength?, maxLength?, mustContain?, mustContainHint?, options?, correctOptionId? }`. MCQ: **4+** `options` with `{ id, label }`; optional `correctOptionId` for validation. |
+| `submissionPlaceholder`, `submissionRows` | Legacy single textarea when `submissionQuestions` is omitted. |
+| `progressSection` | Optional heading in `learner/journal/PROGRESS.md` updated when the learner saves. |
+| `journalGuide` | Optional extra background (shown as **Background**). Prefer merging into `body` to avoid duplication. |
 
 ## Paths
 
@@ -55,3 +61,4 @@ External URLs do not belong in `path`. Put them in the guide markdown.
 | A recap after the chapter exists | `docs/revision/` |
 | A sample command output | `examples/` |
 | Your own checkmarks | nowhere in git — `learner/progress.json` |
+| Your exercise answers | nowhere in git — `learner/submissions/` (from **Save locally** in the UI) |

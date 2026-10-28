@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""One-off helper to refresh Phase 0 step copy in curriculum.json (safe to re-run)."""
+"""Older helper that overwrites Phase 0 steps in curriculum.json.
+
+Do not re-run it to "refresh" the live curriculum. curriculum.json is the
+source of truth for the roadmap UI. This file is a snapshot of an earlier
+wording and would roll the chapter-linked copy back.
+"""
 from __future__ import annotations
 
 import json

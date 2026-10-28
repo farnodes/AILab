@@ -8,7 +8,7 @@ import os
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import unquote, urlparse
+from urllib.parse import parse_qs, unquote, urlparse
 
 ROOT = Path(__file__).resolve().parent.parent
 APP = Path(__file__).resolve().parent
@@ -16,6 +16,8 @@ PUBLIC = APP / "public"
 LEARNER = ROOT / "learner"
 CURRICULUM = ROOT / "curriculum" / "curriculum.json"
 PROGRESS = LEARNER / "progress.json"
+SUBMISSIONS = LEARNER / "submissions"
+PROGRESS_MD = LEARNER / "journal" / "PROGRESS.md"
 
 HOST = os.environ.get("LAB_UI_HOST", "127.0.0.1")
 PORT = int(os.environ.get("LAB_UI_PORT", "8765"))
@@ -35,6 +37,8 @@ def _blocked_repo_file(file_path: Path) -> bool:
         return True
     name = rel.name
     if name == ".env" or (name.startswith(".env.") and name != ".env.example"):
+        return True
+    if len(rel.parts) >= 2 and rel.parts[0] == "learner" and rel.parts[1] == "submissions":
         return True
     return False
 
@@ -151,6 +155,188 @@ def sync_day_status_from_steps(day_entry: dict, step_defs: list) -> bool:
     return False
 
 
+def curriculum_step(curriculum: dict, day_id: str, step_id: str) -> dict | None:
+    day = curriculum_day(curriculum, day_id)
+    if not day:
+        return None
+    sid = str(step_id)
+    for step in day.get("steps") or []:
+        if str(step.get("id")) == sid:
+            return step
+    return None
+
+
+def submission_path(day_id: str, step_id: str) -> Path:
+    return SUBMISSIONS / day_id / f"step-{step_id}.json"
+
+
+def submission_questions(step: dict) -> list:
+    qs = step.get("submissionQuestions")
+    if not isinstance(qs, list) or not qs:
+        return []
+    return qs
+
+
+def _mcq_option_ids(q: dict) -> set[str]:
+    return {o["id"] for o in q.get("options") or [] if isinstance(o.get("id"), str)}
+
+
+def _answer_display(q: dict, val: str) -> str:
+    if q.get("input") == "mcq":
+        for opt in q.get("options") or []:
+            if opt.get("id") == val:
+                return str(opt.get("label") or val)
+    return val
+
+
+def validate_submission_answers(step: dict, answers: dict) -> dict[str, str]:
+    """Return field id -> error message."""
+    field_errors: dict[str, str] = {}
+    for q in submission_questions(step):
+        qid = q["id"]
+        raw = answers.get(qid, "")
+        val = raw.strip() if isinstance(raw, str) else ""
+
+        if q.get("input") == "mcq":
+            valid = _mcq_option_ids(q)
+            if q.get("required", True) and not val:
+                field_errors[qid] = "Select one option."
+                continue
+            if val and val not in valid:
+                field_errors[qid] = "Invalid choice."
+                continue
+            correct = q.get("correctOptionId")
+            if val and correct and val != correct:
+                field_errors[qid] = "Not quite—read the chapter and try another option."
+            continue
+
+        label = q.get("label") or qid
+
+        if q.get("required", True) and not val:
+            field_errors[qid] = "This answer is required."
+            continue
+        if not val:
+            continue
+
+        min_len = int(q.get("minLength") or 0)
+        if min_len and len(val) < min_len:
+            field_errors[qid] = f"At least {min_len} characters."
+
+        max_len = int(q.get("maxLength") or 20_000)
+        if len(val) > max_len:
+            field_errors[qid] = f"At most {max_len} characters."
+
+        for needle in q.get("mustContain") or []:
+            if not isinstance(needle, str) or not needle.strip():
+                continue
+            if needle.lower() not in val.lower():
+                hint = q.get("mustContainHint") or f"Include “{needle}”."
+                field_errors[qid] = field_errors.get(qid, "")
+                field_errors[qid] = (
+                    f"{field_errors[qid]} {hint}".strip()
+                    if qid in field_errors
+                    else hint
+                )
+    return field_errors
+
+
+def answers_to_progress_text(step: dict, answers: dict) -> str:
+    parts: list[str] = []
+    for q in submission_questions(step):
+        val = answers.get(q["id"], "")
+        if isinstance(val, str) and val.strip():
+            shown = _answer_display(q, val.strip())
+            parts.append(f"**{q.get('label', q['id'])}**\n\n{shown}")
+    return "\n\n".join(parts)
+
+
+def load_submission_file(day_id: str, step_id: str) -> dict:
+    path = submission_path(day_id, step_id)
+    if not path.is_file():
+        return {}
+    try:
+        return load_json(path)
+    except json.JSONDecodeError:
+        return {}
+
+
+def normalize_submission_response(step: dict | None, raw: dict) -> dict:
+    updated = raw.get("updatedAt")
+    qs = submission_questions(step) if step else []
+    if qs:
+        answers = {q["id"]: "" for q in qs}
+        if isinstance(raw.get("answers"), dict):
+            for q in qs:
+                v = raw["answers"].get(q["id"])
+                if isinstance(v, str):
+                    answers[q["id"]] = v
+        elif isinstance(raw.get("content"), str) and raw["content"].strip():
+            answers[qs[0]["id"]] = raw["content"]
+        return {"version": 1, "answers": answers, "updatedAt": updated}
+    content = raw.get("content") if isinstance(raw.get("content"), str) else ""
+    return {"content": content, "updatedAt": updated}
+
+
+def save_submission_record(
+    day_id: str,
+    step_id: str,
+    *,
+    answers: dict | None = None,
+    content: str | None = None,
+) -> dict:
+    now = datetime.now(timezone.utc).isoformat()
+    SUBMISSIONS.mkdir(parents=True, exist_ok=True)
+    (SUBMISSIONS / day_id).mkdir(parents=True, exist_ok=True)
+    path = submission_path(day_id, step_id)
+    payload: dict = {"version": 1, "updatedAt": now}
+    if answers is not None:
+        payload["answers"] = answers
+    if content is not None:
+        payload["content"] = content
+    tmp = path.with_suffix(".json.tmp")
+    with tmp.open("w", encoding="utf-8") as f:
+        json.dump(payload, f, indent=2)
+        f.write("\n")
+        f.flush()
+        os.fsync(f.fileno())
+    tmp.replace(path)
+    return payload
+
+
+def load_submission(day_id: str, step_id: str) -> dict:
+    """Legacy helper — prefer normalize_submission_response with step."""
+    raw = load_submission_file(day_id, step_id)
+    content = raw.get("content") if isinstance(raw.get("content"), str) else ""
+    return {"content": content, "updatedAt": raw.get("updatedAt")}
+
+
+def save_submission(day_id: str, step_id: str, content: str) -> dict:
+    return save_submission_record(day_id, step_id, content=content)
+
+
+def sync_progress_md_section(section_title: str, content: str) -> None:
+    """Replace body under ## {section_title} in PROGRESS.md when the heading exists."""
+    if not PROGRESS_MD.is_file():
+        return
+    text = PROGRESS_MD.read_text(encoding="utf-8")
+    needle = f"## {section_title}"
+    idx = text.find(needle)
+    if idx == -1:
+        return
+    start = idx + len(needle)
+    rest = text[start:]
+    cut = len(rest)
+    for marker in ("\n## ", "\n---"):
+        pos = rest.find(marker)
+        if pos != -1 and pos < cut:
+            cut = pos
+    block = content.strip()
+    before = text[:idx]
+    after = text[start + cut :]
+    middle = f"{needle}\n\n{block}\n\n" if block else f"{needle}\n\n"
+    PROGRESS_MD.write_text(before + middle + after.lstrip("\n"), encoding="utf-8")
+
+
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, fmt: str, *args) -> None:
         print(f"[lab-ui] {self.address_string()} - {fmt % args}")
@@ -184,6 +370,23 @@ class Handler(BaseHTTPRequestHandler):
             if changed:
                 save_progress(progress)
             self._send_json(200, progress)
+            return
+
+        if path == "/api/submissions":
+            qs = parse_qs(parsed.query)
+            day_id = (qs.get("dayId") or [None])[0]
+            step_id = (qs.get("stepId") or [None])[0]
+            if not day_id or step_id is None:
+                self._send_json(400, {"error": "dayId and stepId required"})
+                return
+            curriculum = load_json(CURRICULUM)
+            step = curriculum_step(curriculum, day_id, str(step_id))
+            if not step or not step.get("submission"):
+                self._send_json(404, {"error": "no submission for this step"})
+                return
+            raw = load_submission_file(day_id, str(step_id))
+            data = normalize_submission_response(step, raw)
+            self._send_json(200, data)
             return
 
         if path.startswith("/repo/"):
@@ -346,6 +549,65 @@ class Handler(BaseHTTPRequestHandler):
         save_progress(progress)
         self._send_json(200, progress)
 
+    def do_PUT(self) -> None:
+        if urlparse(self.path).path != "/api/submissions":
+            self.send_error(404)
+            return
+        try:
+            body = self._read_json_body()
+        except json.JSONDecodeError:
+            self._send_json(400, {"error": "invalid JSON"})
+            return
+        day_id = body.get("dayId")
+        step_id = body.get("stepId")
+        if not day_id or step_id is None:
+            self._send_json(400, {"error": "dayId and stepId required"})
+            return
+        curriculum = load_json(CURRICULUM)
+        step = curriculum_step(curriculum, day_id, str(step_id))
+        if not step or not step.get("submission"):
+            self._send_json(404, {"error": "no submission for this step"})
+            return
+
+        qs = submission_questions(step)
+        if qs:
+            answers_in = body.get("answers")
+            if not isinstance(answers_in, dict):
+                self._send_json(400, {"error": "answers object required"})
+                return
+            answers = {
+                q["id"]: str(answers_in.get(q["id"], ""))[:20_000] for q in qs
+            }
+            field_errors = validate_submission_answers(step, answers)
+            if field_errors:
+                self._send_json(
+                    400,
+                    {
+                        "error": "validation failed",
+                        "fieldErrors": field_errors,
+                    },
+                )
+                return
+            saved = save_submission_record(day_id, str(step_id), answers=answers)
+            section = step.get("progressSection")
+            if section:
+                sync_progress_md_section(section, answers_to_progress_text(step, answers))
+            self._send_json(200, saved)
+            return
+
+        content = body.get("content")
+        if not isinstance(content, str):
+            self._send_json(400, {"error": "content must be a string"})
+            return
+        if len(content) > 200_000:
+            self._send_json(400, {"error": "content too large"})
+            return
+        saved = save_submission_record(day_id, str(step_id), content=content)
+        section = step.get("progressSection")
+        if section:
+            sync_progress_md_section(section, content)
+        self._send_json(200, saved)
+
     def _send_file(self, file_path: Path) -> None:
         mime, _ = mimetypes.guess_type(str(file_path))
         if file_path.suffix == ".md":
@@ -373,6 +635,7 @@ def main() -> None:
     server = ThreadingHTTPServer((HOST, PORT), Handler)
     print(f"Lab roadmap UI → http://{HOST}:{PORT}")
     print(f"Progress persisted at → {PROGRESS}")
+    print(f"Submissions (gitignored) → {SUBMISSIONS}")
     if progress.get("updatedAt"):
         print(f"Last saved → {progress['updatedAt']}")
     try:

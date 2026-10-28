@@ -40,6 +40,10 @@ learner/progress.json.tmp
 # Dated journal notes stay on your machine
 learner/journal/20*.md
 
+# Exercise answers saved from the roadmap UI (never commit)
+learner/submissions/**
+!learner/submissions/README.md
+
 # Exercise runs other than the committed Day 2 sample
 examples/*
 !examples/README.md

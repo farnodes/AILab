@@ -18,8 +18,31 @@
 ## After each session
 
 1. Mark steps **done** in the roadmap UI (`./lab-ui.sh`).
-2. Optional: `learner/journal/YYYY-MM-DD.md` notes.
-3. Set **Last completed** here when the day file’s **Day progress** is **done**.
+2. Use **Save locally** on exercise steps — answers live in `learner/submissions/` (gitignored).
+3. Optional: `learner/journal/YYYY-MM-DD.md` notes.
+4. Set **Last completed** here when the day file’s **Day progress** is **done**.
+
+---
+
+## Day 1 — tokens
+
+*(Save locally on Day 1 step 5.)*
+
+---
+
+## Day 1 — context window
+
+**What must fit inside one chat/completions call?**
+
+dasdasdadasdasdadasdasdadasdasdadasdasda
+
+**What happens if someone pastes a whole PDF into one user message?**
+
+dasdasdadasdasdadasdasdadasdasdadasdasda
+
+**Why does this lab use about 4096 tokens as a working cap?**
+
+dasdasdadasdasdadasdasda
 
 ---
 

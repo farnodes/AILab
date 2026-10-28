@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 240" role="img">
+  <rect width="720" height="240" fill="#fff"/>
+  <rect x="16" y="78" width="120" height="64" fill="#f5f5f5" stroke="#000"/>
+  <text x="76" y="116" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" font-size="16" font-weight="700">You</text>
+  <line x1="136" y1="110" x2="196" y2="110" stroke="#000" stroke-width="2"/>
+  <polygon points="196,104 208,110 196,116" fill="#000"/>
+  <text x="172" y="100" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" font-size="12">./server.sh</text>
+  <rect x="208" y="48" width="180" height="124" fill="#000"/>
+  <text x="298" y="100" text-anchor="middle" fill="#fff" font-family="ui-sans-serif, system-ui, sans-serif" font-size="18" font-weight="700">Ollama</text>
+  <text x="298" y="126" text-anchor="middle" fill="#fff" font-family="ui-monospace, monospace" font-size="13">port 11434</text>
+  <text x="298" y="150" text-anchor="middle" fill="#fff" font-family="ui-sans-serif, system-ui, sans-serif" font-size="12">model lfm3</text>
+  <line x1="388" y1="90" x2="448" y2="58" stroke="#000" stroke-width="2"/>
+  <line x1="388" y1="130" x2="448" y2="168" stroke="#000" stroke-width="2"/>
+  <polygon points="448,50 460,58 444,64" fill="#000"/>
+  <polygon points="448,176 460,168 444,162" fill="#000"/>
+  <rect x="460" y="28" width="244" height="64" fill="#fff" stroke="#000"/>
+  <text x="582" y="52" text-anchor="middle" font-family="ui-monospace, monospace" font-size="13" font-weight="700">GET /api/tags</text>
+  <text x="582" y="74" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13">Day 1 · is it up? which names?</text>
+  <rect x="460" y="140" width="244" height="64" fill="#fff" stroke="#000"/>
+  <text x="582" y="164" text-anchor="middle" font-family="ui-monospace, monospace" font-size="12" font-weight="700">POST /v1/chat/completions</text>
+  <text x="582" y="186" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13">Day 2+ · the actual chat call</text>
+</svg>

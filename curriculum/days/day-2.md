@@ -4,3 +4,5 @@
 > Steps live in [curriculum.json](../curriculum.json) (`day-2`).
 
 **Phase:** 0 Bootstrap · **Artifact:** `examples/day02-response.json`
+
+Lesson: [Phase 0 chapter](../../docs/guides/phase0.md) — “One chat request”, “Reading the response”.

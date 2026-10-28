@@ -542,6 +542,123 @@ select.status-select {
   margin-bottom: 0;
 }
 
+.step-submission {
+  margin: 0.75rem 0 0;
+  padding: 0.75rem;
+  border: 1px solid var(--line);
+  background: var(--fill);
+}
+
+.submission-label {
+  margin: 0 0 0.25rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.submission-hint {
+  margin: 0 0 0.5rem;
+  font-size: 0.75rem;
+}
+
+.submission-input {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  padding: 0.5rem 0.625rem;
+  border: 1px solid var(--line);
+  background: var(--white);
+  resize: vertical;
+  min-height: 2.5rem;
+}
+
+.submission-input.invalid {
+  border-color: #a00;
+  outline: 1px solid #a00;
+}
+
+.submission-input-text {
+  min-height: 0;
+}
+
+.submission-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.submission-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.submission-q-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.submission-q-hint {
+  margin: 0;
+  font-size: 0.75rem;
+}
+
+.submission-mcq {
+  margin: 0.35rem 0 0;
+  padding: 0;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.submission-mcq.invalid {
+  outline: 1px solid #a00;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.submission-mcq-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  cursor: pointer;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--line);
+  background: var(--white);
+}
+
+.submission-mcq-option:has(input:checked) {
+  border-color: var(--black);
+  background: var(--fill);
+}
+
+.submission-mcq-option input {
+  margin-top: 0.2rem;
+  flex-shrink: 0;
+}
+
+.submission-field-error {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #a00;
+}
+
+.submission-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.submission-status.error {
+  color: #a00;
+}
+
 .why {
   font-size: 0.875rem;
   color: var(--gray);
@@ -764,6 +881,28 @@ select.status-select {
   max-width: none;
   margin: 0;
   padding: 0.75rem 1rem 2rem;
+}
+
+.step-figure,
+.doc-figure {
+  margin: 0.75rem 0;
+}
+
+.step-figure img,
+.doc-figure img,
+.reader-main img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--line);
+  background: var(--white);
+}
+
+.step-figure figcaption,
+.doc-figure figcaption {
+  margin-top: 0.35rem;
+  font-size: 0.8125rem;
+  color: var(--gray);
 }
 
 @media (max-width: 720px) {

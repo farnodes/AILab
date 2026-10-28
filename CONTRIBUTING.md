@@ -12,6 +12,8 @@ Personal checkmarks and dated journal notes stay in `learner/` and are not part 
 
 ## Add a day or use case
 
+Contributors authoring days (chapter + exercises + Q&A submissions) should follow the project skill **ailab-curriculum-day** (`.cursor/skills/ailab-curriculum-day/SKILL.md`).
+
 1. Pick the phase in [curriculum/SCHEMA.md](curriculum/SCHEMA.md). Add a phase only when the idea is a new stage, not a single exercise.
 2. Append a day to `curriculum/curriculum.json`. Keep existing `id` values. New days use the next `day-N`. New steps use new string ids. Learners’ progress files key off those ids.
 3. Write the chapter in `docs/guides/` if the day needs more than the step text (new phase guide, or a section in the current one). Link it from the step `links` with a repo-relative path such as `docs/guides/phase2.md`.

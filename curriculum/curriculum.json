@@ -30,6 +30,11 @@
   ],
   "resources": [
     {
+      "id": "phase0",
+      "label": "Phase 0 chapter",
+      "path": "docs/guides/phase0.md"
+    },
+    {
       "id": "runtime",
       "label": "Runtime (Ollama + lfm3)",
       "path": "docs/README.md"
@@ -53,17 +58,18 @@
       "phase": 0,
       "phaseLabel": "Bootstrap",
       "timeBoxMinutes": 30,
-      "summary": "Operate Ollama as a local LLM service: verify model + API, define token & context for everything after.",
+      "summary": "Start the local model service, confirm the model id is lfm3, and define token and context window in your own words. First run may take 45\u201360 min while lfm3 downloads; later sittings are ~30 min.",
       "resources": [
+        "phase0",
         "runtime"
       ],
       "steps": [
         {
           "id": "1",
           "title": "Why Day 1 \u2014 bootstrap the runtime",
-          "durationMinutes": 5,
-          "body": "Scenario: You join a team that runs AI features behind an HTTP API\u2014not a chat website. Before prompts or RAG, you must know the service is up, which model name to pass, and what limits apply.\n\nToday you treat Ollama like a microservice: start it, list models, read /api/tags, then define token and context in your journal so later numbers make sense.\n\nSkim Runtime README + Daily progress, then continue.",
-          "why": "On-call debugging starts with \u201cis the server running?\u201d not \u201cis the prompt wrong?\u201d",
+          "durationMinutes": 4,
+          "body": "Ollama is a program on your machine. It loads a model and answers HTTP calls. It is not the chat UI and not model training.\n\nTwo URLs share port 11434:\n1) GET /api/tags \u2014 is the process up, and which model names are installed?\n2) POST /v1/chat/completions \u2014 the chat call you use from Day 2. Base URL for that family: http://127.0.0.1:11434/v1\n\nThe model id in JSON this week is lfm3. Read \u201cThe two URLs\u201d and \u201cHow the seven days fit,\u201d then run the exercises.\n\nUseful distinction: connection refused means nothing is listening (run ./server.sh). model not found means the name in JSON does not match ollama list\u2014not a bad prompt.",
+          "why": "When a later call fails, check port 11434 and the model string before editing prompts.",
           "links": [
             {
               "label": "Runtime README",
@@ -72,81 +78,444 @@
             {
               "label": "Daily progress",
               "path": "docs/guides/DAILY_30MIN.md"
+            },
+            {
+              "label": "Chapter: the two URLs",
+              "path": "docs/guides/phase0.md"
             }
-          ]
+          ],
+          "figure": "docs/guides/images/two-urls.svg",
+          "figureAlt": "Ollama on port 11434 exposes an inventory URL and a chat URL."
         },
         {
           "id": "2",
           "title": "Exercise \u2014 start the LLM service",
-          "body": "Scenario: First minute of a lab session\u2014bring the stack up the same way every time.",
-          "why": "One command beats remembering five manual steps.",
+          "body": "Run from the repo root (folder that contains server.sh):\n\n./server.sh starts Ollama if port 11434 is closed, pulls lfm3 the first time (can take many minutes), and sends one short warm-up request.\n\nSuccess: a banner with API base http://127.0.0.1:11434/v1 and model id lfm3. If ollama is not on PATH, install from ollama.com. On Windows, use Git Bash/WSL or bash scripts/server.sh.\n\nOptional: ollama run lfm3 and ask one question before Day 2\u2019s HTTP exercise.",
+          "why": "One command is the session habit. Remembering serve, pull, and a warm-up curl separately is how people skip a step and then debug the wrong layer.",
           "commands": [
             "./server.sh"
           ],
-          "outcome": "Terminal shows API ready on 11434 and model lfm3 (or pull completes)."
+          "outcome": "The terminal banner shows port 11434 and model lfm3. A first-time pull finishing counts as success.",
+          "figure": "docs/guides/images/server-start.svg",
+          "figureAlt": "server.sh starts Ollama, pulls lfm3 if needed, then warms the model.",
+          "durationMinutes": 10
         },
         {
           "id": "3",
           "title": "Exercise \u2014 verify model name",
-          "body": "Scenario: Your curl fails with \u201cmodel not found\u201d if the name here does not match every JSON body you send later.",
-          "why": "The string lfm3 must match exactly in all API calls.",
+          "body": "ollama list prints a table. For JSON, use the NAME column only.\n\nExample: a row lfm3:latest still maps to \"model\": \"lfm3\" in this lab unless your list shows a different name.\n\nSize and modified columns are not sent in requests. If lfm3 is missing, ./server.sh did not finish pulling\u2014run it again.\n\nTomorrow\u2019s curls use \"model\": \"lfm3\". A mismatch returns model not found (name error, not content error).",
+          "why": "The string in JSON is not a description of the model. It is an exact lookup key.",
           "commands": [
             "ollama list"
           ],
-          "outcome": "You see lfm3 in the list and know the name to copy into Day 2 curl."
+          "outcome": "You can point at the NAME cell you will paste into Day 2.",
+          "figure": "docs/guides/images/model-id.svg",
+          "figureAlt": "Copy the NAME column into the model field. lfm3:latest is still requested as lfm3.",
+          "durationMinutes": 3
         },
         {
           "id": "4",
           "title": "Exercise \u2014 health via /api/tags",
-          "body": "Scenario: A monitoring check pings inventory\u2014not chat\u2014to see if Ollama is alive.",
-          "why": "/api/tags is Ollama-native; /v1/* is the OpenAI-compatible layer on the same port.",
+          "body": "Run the curls below, then pick the answer that matches what you saw.\n\nThis request does not call the model\u2014it lists installed models.",
+          "why": "/api/tags is Ollama\u2019s own inventory. /v1/chat/completions is the chat API on the same port. Day 2 uses the second one. Today you only prove the first.",
           "commands": [
             "curl -s http://127.0.0.1:11434/api/tags | python3 -m json.tool",
             "curl -s http://127.0.0.1:11434/api/tags | python3 -c \"import json,sys; d=json.load(sys.stdin); print('models:', [m.get('name') for m in d.get('models',[])][:5])\""
           ],
-          "outcome": "JSON prints without \u201cconnection refused\u201d; you can name one model from the list."
+          "outcome": "You see a models array, not connection refused, and you can name one model.",
+          "durationMinutes": 5,
+          "figure": "docs/guides/images/tags-health.svg",
+          "figureAlt": "Success is JSON with a models array; connection refused means Ollama is down.",
+          "submission": true,
+          "submissionQuestions": [
+            {
+              "id": "tags-result",
+              "label": "After GET /api/tags, which outcome did you get?",
+              "input": "mcq",
+              "required": true,
+              "correctOptionId": "json-models",
+              "options": [
+                {
+                  "id": "json-models",
+                  "label": "JSON with a models array (each item has a name)"
+                },
+                {
+                  "id": "refused",
+                  "label": "curl: connection refused \u2014 no JSON body"
+                },
+                {
+                  "id": "chat-reply",
+                  "label": "A chat completion with message.content from the model"
+                },
+                {
+                  "id": "html-404",
+                  "label": "An HTML 404 page from a web browser"
+                },
+                {
+                  "id": "empty-200",
+                  "label": "HTTP 200 with an empty body and no JSON"
+                }
+              ]
+            }
+          ]
         },
         {
           "id": "5",
           "title": "Reflect \u2014 define token (journal)",
-          "body": "Where to write: open learner/journal/PROGRESS.md or create learner/journal/YYYY-MM-DD.md for today. Use a heading like \u201cDay 1 \u2014 tokens\u201d.\n\nYour task (3\u20135 sentences in your own words):\n1) What is a token, in plain language?\n2) Why is \u201cHello\u201d not guaranteed to be exactly one token?\n3) Where will you read token counts in API responses starting tomorrow?\n\nA strong entry names subword pieces and mentions usage.prompt_tokens / completion_tokens. A weak entry only says \u201cpieces of text\u201d with no link to the API.",
+          "body": "Read \u201cA token\u201d in the chapter, then answer each multiple-choice question and **Save locally**.",
           "why": "Tokens drive billing, speed, and context limits in every product.",
           "outcome": "Journal answers: subword pieces; usage.prompt_tokens / completion_tokens.",
           "links": [
             {
               "label": "Journal (PROGRESS.md)",
               "path": "learner/journal/PROGRESS.md"
+            },
+            {
+              "label": "Chapter: a token",
+              "path": "docs/guides/phase0.md"
             }
           ],
-          "journalGuide": "Tokens are the unit everything else is built on. Models never see \u201cwords\u201d directly\u2014they see token IDs produced by a tokenizer. A tokenizer splits text into subword pieces: common English might be one token per word, but rare words, typos, emoji, and code often become several tokens. Spaces and punctuation can cost tokens too.\n\nThat matters because three different systems all count tokens the same way: (1) how much text fits in one request (context window), (2) how long generation takes, and (3) how usage is reported in API JSON. Characters on screen are a poor proxy\u201410,000 characters of JSON can be far more tokens than 10,000 characters of plain English.\n\nStarting on Day 2 you will see usage.prompt_tokens (everything you sent), usage.completion_tokens (everything the model generated, including hidden reasoning on LFM3), and usage.total_tokens. Products bill and throttle on those numbers, not on \u201chow long the reply looked.\u201d"
+          "figure": "docs/guides/images/tokens.svg",
+          "figureAlt": "Hello may be one token or several. Counts live in usage, not in the word.",
+          "durationMinutes": 6,
+          "submission": true,
+          "progressSection": "Day 1 \u2014 tokens",
+          "submissionQuestions": [
+            {
+              "id": "token-define",
+              "label": "What is a token?",
+              "input": "mcq",
+              "required": true,
+              "correctOptionId": "subword",
+              "options": [
+                {
+                  "id": "subword",
+                  "label": "A subword piece the tokenizer passes to the model\u2014not always one English word"
+                },
+                {
+                  "id": "char",
+                  "label": "Always exactly one keyboard character"
+                },
+                {
+                  "id": "word",
+                  "label": "Always one dictionary word"
+                },
+                {
+                  "id": "byte",
+                  "label": "One raw byte from the UTF-8 file on disk"
+                },
+                {
+                  "id": "pixel",
+                  "label": "One pixel in a rendered screenshot of the prompt"
+                }
+              ]
+            },
+            {
+              "id": "hello-why",
+              "label": "Why can \u201cHello\u201d be more than one token?",
+              "input": "mcq",
+              "required": true,
+              "correctOptionId": "split-space",
+              "options": [
+                {
+                  "id": "split-space",
+                  "label": "Tokenizers can split subwords; a leading space is often its own token"
+                },
+                {
+                  "id": "always-one",
+                  "label": "It cannot\u2014Hello is always exactly one token"
+                },
+                {
+                  "id": "model-random",
+                  "label": "The model randomly decides how many tokens to use"
+                },
+                {
+                  "id": "curl-bug",
+                  "label": "curl merges multiple words into one token automatically"
+                },
+                {
+                  "id": "gpu",
+                  "label": "GPU drivers combine letters into one token for speed"
+                }
+              ]
+            },
+            {
+              "id": "usage-fields",
+              "label": "Which fields report token counts in the chat JSON (from Day 2)?",
+              "input": "mcq",
+              "required": true,
+              "correctOptionId": "usage-pc",
+              "options": [
+                {
+                  "id": "usage-pc",
+                  "label": "usage.prompt_tokens and usage.completion_tokens (plus usage.total_tokens)"
+                },
+                {
+                  "id": "choices-len",
+                  "label": "choices[0].length and choices[0].width"
+                },
+                {
+                  "id": "model-size",
+                  "label": "model.size and model.modified from ollama list"
+                },
+                {
+                  "id": "headers",
+                  "label": "HTTP Content-Length headers only"
+                },
+                {
+                  "id": "finish-only",
+                  "label": "finish_reason only\u2014no token counts exist"
+                }
+              ]
+            }
+          ]
         },
         {
           "id": "6",
           "title": "Reflect \u2014 define context window (journal)",
-          "body": "Where to write: same journal file as the token entry; heading \u201cDay 1 \u2014 context window\u201d.\n\nYour task (3\u20135 sentences):\n1) What must fit inside a single chat/completions request?\n2) What happens if someone pastes a whole PDF into one message?\n3) Why does this lab use ~4096 as a working mental cap even if marketing sheets quote bigger numbers?\n\nMention that prompt + completion share one limit and that overflow leads to truncation or errors.",
-          "why": "Phase 2 RAG exists because you cannot stuff everything into one call.",
+          "body": "Read \u201cThe context budget,\u201d then answer the multiple-choice questions and **Save locally**.",
+          "why": "Day 5 will make this limit visible. Phase 2 exists because the limit does not go away when the documents get bigger.",
           "outcome": "Journal mentions prompt + reply share one limit; overflow truncates or errors.",
-          "journalGuide": "The context window is a hard budget for one API call. Everything in messages[]\u2014system, user, assistant history you resend, and the model\u2019s new reply\u2014must fit inside that budget, measured in tokens. If the budget is ~4096 tokens in this lab, you cannot reliably paste an entire PDF or repo into one user message and expect the model to \u201csee\u201d all of it.\n\nWhen input is too large, runtimes may truncate silently (often dropping the middle), return an error, or stop early with finish_reason length. That is not a bug in your curl\u2014it is physics. Phase 2 (RAG) exists specifically because teams retrieve small relevant chunks instead of stuffing whole documents into one prompt.\n\nContext is shared: a long chat history you keep appending eats the same budget as the user\u2019s latest question. Stateless APIs mean your app must decide what history to resend and what to drop.",
           "links": [
             {
               "label": "Journal (PROGRESS.md)",
               "path": "learner/journal/PROGRESS.md"
+            },
+            {
+              "label": "Chapter: context budget",
+              "path": "docs/guides/phase0.md"
+            }
+          ],
+          "figure": "docs/guides/images/context-budget.svg",
+          "figureAlt": "One call shares about 4096 tokens between what you send and the reply.",
+          "durationMinutes": 6,
+          "submission": true,
+          "progressSection": "Day 1 \u2014 context window",
+          "submissionQuestions": [
+            {
+              "id": "fits",
+              "label": "What must fit inside one chat/completions call?",
+              "input": "mcq",
+              "required": true,
+              "correctOptionId": "both",
+              "options": [
+                {
+                  "id": "both",
+                  "label": "Your messages (system/user/history you send) and the model\u2019s new reply\u2014including reasoning"
+                },
+                {
+                  "id": "user-only",
+                  "label": "Only the latest user message\u2014replies are unlimited"
+                },
+                {
+                  "id": "reply-only",
+                  "label": "Only the model reply\u2014prompts do not count"
+                },
+                {
+                  "id": "disk",
+                  "label": "The entire model weights file on disk"
+                },
+                {
+                  "id": "unlimited",
+                  "label": "Nothing\u2014context is unlimited on localhost"
+                }
+              ]
+            },
+            {
+              "id": "pdf",
+              "label": "Someone pastes a whole PDF into one user message. What is realistic?",
+              "input": "mcq",
+              "required": true,
+              "correctOptionId": "overflow",
+              "options": [
+                {
+                  "id": "overflow",
+                  "label": "Often truncate, error, or cut off\u2014the model may not see all pages"
+                },
+                {
+                  "id": "all-seen",
+                  "label": "The model always reads every page with no limit"
+                },
+                {
+                  "id": "auto-rag",
+                  "label": "Ollama automatically enables RAG and indexes the PDF"
+                },
+                {
+                  "id": "split-api",
+                  "label": "The API splits the PDF across unlimited free calls automatically"
+                },
+                {
+                  "id": "ignore",
+                  "label": "PDF text is ignored; only the filename is used"
+                }
+              ]
+            },
+            {
+              "id": "cap4096",
+              "label": "Why ~4096 tokens as a working cap in this lab?",
+              "input": "mcq",
+              "required": true,
+              "correctOptionId": "teaching",
+              "options": [
+                {
+                  "id": "teaching",
+                  "label": "A shared teaching ruler so everyone\u2019s exercises stay comparable"
+                },
+                {
+                  "id": "hardware",
+                  "label": "It is the exact hardware RAM size of your GPU in bytes"
+                },
+                {
+                  "id": "law",
+                  "label": "It is a legal maximum enforced by OpenAI globally"
+                },
+                {
+                  "id": "measure-today",
+                  "label": "You must measure it with curl on Day 1 before continuing"
+                },
+                {
+                  "id": "pdf-size",
+                  "label": "It equals the maximum PDF page count Ollama supports"
+                }
+              ]
             }
           ]
         },
         {
           "id": "7",
           "title": "Close out",
-          "body": "Mark all steps done. You can explain: base URL, model id, token, context\u2014in one breath.",
-          "why": "Day 2 assumes this foundation.",
-          "outcome": "Day 1 shows Done in the sidebar and Daily progress."
+          "body": "Close-out check: pick the best answer for each item, **Save locally**, then mark the step done.",
+          "why": "Day 2 sends a real chat request. It assumes you already know the URL, the model id, and what the token fields mean.",
+          "outcome": "You can say the four lines without the chapter open. Day 1 then shows Done.",
+          "durationMinutes": 3,
+          "submission": true,
+          "submissionQuestions": [
+            {
+              "id": "base-url",
+              "label": "Where do chat requests go in this lab?",
+              "input": "mcq",
+              "required": true,
+              "correctOptionId": "v1",
+              "options": [
+                {
+                  "id": "v1",
+                  "label": "POST http://127.0.0.1:11434/v1/chat/completions (base http://127.0.0.1:11434/v1)"
+                },
+                {
+                  "id": "tags-chat",
+                  "label": "POST http://127.0.0.1:11434/api/tags with a user message"
+                },
+                {
+                  "id": "openai-cloud",
+                  "label": "https://api.openai.com only\u2014local Ollama has no chat URL"
+                },
+                {
+                  "id": "github",
+                  "label": "POST requests to github.com/farnodes/AILab"
+                },
+                {
+                  "id": "ollama-com",
+                  "label": "https://ollama.com/chat for all local models"
+                }
+              ]
+            },
+            {
+              "id": "model-id",
+              "label": "Which model id do you send in JSON this week?",
+              "input": "mcq",
+              "required": true,
+              "correctOptionId": "lfm3",
+              "options": [
+                {
+                  "id": "lfm3",
+                  "label": "lfm3 (from ollama list NAME column in this lab)"
+                },
+                {
+                  "id": "latest-only",
+                  "label": "lfm3:latest including the tag every time"
+                },
+                {
+                  "id": "any",
+                  "label": "Any display name you remember\u2014no need to match the list"
+                },
+                {
+                  "id": "gpt4",
+                  "label": "gpt-4o"
+                },
+                {
+                  "id": "size-col",
+                  "label": "The SIZE column from ollama list"
+                }
+              ]
+            },
+            {
+              "id": "token-recall",
+              "label": "Tokens and usage fields\u2014best statement?",
+              "input": "mcq",
+              "required": true,
+              "correctOptionId": "usage",
+              "options": [
+                {
+                  "id": "usage",
+                  "label": "Subword pieces; counts in usage.prompt_tokens and usage.completion_tokens"
+                },
+                {
+                  "id": "words",
+                  "label": "Always one token per English word; no usage block exists"
+                },
+                {
+                  "id": "chars",
+                  "label": "Character count in message.content only"
+                },
+                {
+                  "id": "free",
+                  "label": "Reasoning tokens are free and not in usage"
+                },
+                {
+                  "id": "tags",
+                  "label": "Token counts come from GET /api/tags"
+                }
+              ]
+            },
+            {
+              "id": "context-recall",
+              "label": "Context window in one call?",
+              "input": "mcq",
+              "required": true,
+              "correctOptionId": "shared",
+              "options": [
+                {
+                  "id": "shared",
+                  "label": "One shared budget (~4096 here) for prompt + reply in that call"
+                },
+                {
+                  "id": "reply-free",
+                  "label": "Prompt unlimited; only replies are capped"
+                },
+                {
+                  "id": "two-windows",
+                  "label": "Separate windows\u20144096 for you and 4096 for the model"
+                },
+                {
+                  "id": "permanent",
+                  "label": "The server remembers all past curls without resending history"
+                },
+                {
+                  "id": "pdf-ok",
+                  "label": "A full PDF in one message always fits if you use lfm3"
+                }
+              ]
+            }
+          ]
         }
       ],
       "reference": {
         "apiBase": "http://127.0.0.1:11434/v1",
         "model": "lfm3",
         "tagsUrl": "http://127.0.0.1:11434/api/tags"
-      }
+      },
+      "guide": "docs/guides/phase0.md",
+      "firstRunMinutes": 60
     },
     {
       "id": "day-2",
@@ -155,8 +524,9 @@
       "phase": 0,
       "phaseLabel": "Bootstrap",
       "timeBoxMinutes": 30,
-      "summary": "Integrate like a backend job: one-shot JSON, usage, reasoning, and stateless message history.",
+      "summary": "Send one chat request, save the JSON, and read content, reasoning, usage, and finish_reason.",
       "resources": [
+        "phase0",
         "runtime",
         "daily"
       ],
@@ -165,7 +535,7 @@
           "id": "1",
           "title": "Why Day 2 \u2014 one-shot chat JSON",
           "durationMinutes": 5,
-          "body": "Scenario: A nightly batch job sends support tickets to the model and stores JSON\u2014not a chat UI. That integration uses non-streaming POST /v1/chat/completions.\n\nToday you run a realistic one-liner prompt, save the full response, and read content, reasoning, usage, and finish_reason. That file is your baseline for Days 3\u20134.\n\nRun ./server.sh first.",
+          "body": "A batch job sends one POST and stores one JSON object. That is non-streaming chat: omit stream, or set it false.\n\nToday you send a real prompt, save the full response, and read four things: message.content (what a user would see), message.reasoning (LFM3\u2019s hidden thinking), usage (token counts), and finish_reason (why it stopped).\n\nRead \u201cOne chat request\u201d and \u201cReading the response,\u201d then run ./server.sh.",
           "why": "Batch + tests use one JSON body; streaming comes later for interactive UX.",
           "commands": [
             "./server.sh"
@@ -174,21 +544,31 @@
             {
               "label": "Phase 0 API",
               "path": "docs/guides/phase0.md"
+            },
+            {
+              "label": "Chapter: one request",
+              "path": "docs/guides/phase0.md"
             }
           ]
         },
         {
           "id": "2",
           "title": "Learn \u2014 request contract",
-          "body": "Open phase0.md mentally: POST /v1/chat/completions with model, messages[{role, content}], stream omitted or false.",
+          "body": "A request needs model and messages. Each message has a role and content.\n\n1) system \u2014 rules (optional today)\n2) user \u2014 the task\n3) assistant \u2014 an earlier reply, only if you want the next turn to remember it\n\nSketch that shape on paper or in the journal without looking at curl. The chapter section \u201cOne chat request\u201d is the answer key.",
           "why": "Every SDK ultimately sends this shape.",
           "links": [
             {
               "label": "Phase 0 guide",
               "path": "docs/guides/phase0.md"
+            },
+            {
+              "label": "Chapter: one request",
+              "path": "docs/guides/phase0.md"
             }
           ],
-          "outcome": "You can sketch the JSON on paper without curl."
+          "outcome": "You can write model, messages, and the three roles without the chapter open.",
+          "figure": "docs/guides/images/chat-roundtrip.svg",
+          "figureAlt": "One JSON request in, four fields to read on the way out."
         },
         {
           "id": "3",
@@ -260,15 +640,21 @@
         {
           "id": "8",
           "title": "Exercise \u2014 stateless multi-turn",
-          "body": "Scenario: Chat history must be sent by your app\u2014send two user messages in one request and see both in context.",
-          "why": "The server does not remember yesterday\u2019s curl.",
+          "body": "The server forgets every curl. This request sends the memory itself: user says a name, assistant greets them, user asks for the name. If the reply is Sam, history worked because you sent it, not because Ollama remembered.",
+          "why": "Multi-turn chat is your app resending messages, not a session on the server.",
           "commands": [
             "curl -s http://127.0.0.1:11434/v1/chat/completions \\",
             "  -H \"Content-Type: application/json\" \\",
             "  -d '{\"model\":\"lfm3\",\"messages\":[{\"role\":\"user\",\"content\":\"My name is Sam.\"},{\"role\":\"assistant\",\"content\":\"Hi Sam.\"},{\"role\":\"user\",\"content\":\"What name did I give? One word.\"}]}' \\",
             "  | python3 -c \"import json,sys; print(json.load(sys.stdin)['choices'][0]['message']['content'])\""
           ],
-          "outcome": "Model answers Sam (proves history is only what you send)."
+          "outcome": "Model answers Sam (proves history is only what you send).",
+          "links": [
+            {
+              "label": "Chapter: one request",
+              "path": "docs/guides/phase0.md"
+            }
+          ]
         },
         {
           "id": "9",
@@ -290,7 +676,8 @@
         "model": "lfm3",
         "artifact": "examples/day02-response.json",
         "stream": "false (default)"
-      }
+      },
+      "guide": "docs/guides/phase0.md"
     },
     {
       "id": "day-3",
@@ -299,8 +686,9 @@
       "phase": 0,
       "phaseLabel": "Bootstrap",
       "timeBoxMinutes": 30,
-      "summary": "Build interactive UX: stream parsing, TTFT, and visible vs reasoning tokens on LFM3.",
+      "summary": "Stream the same endpoint, measure time to the first byte, and join only the visible text.",
       "resources": [
+        "phase0",
         "runtime",
         "daily"
       ],
@@ -328,9 +716,17 @@
         {
           "id": "2",
           "title": "Learn \u2014 batch vs stream",
-          "body": "Same URL and messages; add \"stream\": true. Response is many data: lines ending with [DONE], not one object.",
+          "body": "Same URL and same messages as Day 2. Add \"stream\": true.\n\nThe response is many lines that start with data:, then a final data: [DONE]. Visible words arrive in delta.content. LFM3 often sends delta.reasoning first.\n\nRead the sample lines in the chapter section \u201cStreaming\u201d before you run curl. You should be able to name one way this HTTP body differs from Day 2\u2019s single JSON object.",
           "why": "Choose stream for UI; batch for tests and ETL.",
-          "outcome": "You can name one field that differs in the HTTP response shape."
+          "outcome": "You can name one field that differs in the HTTP response shape.",
+          "links": [
+            {
+              "label": "Chapter: streaming",
+              "path": "docs/guides/phase0.md"
+            }
+          ],
+          "figure": "docs/guides/images/streaming.svg",
+          "figureAlt": "A stream is reasoning, then content, then finish_reason, then DONE."
         },
         {
           "id": "3",
@@ -347,11 +743,15 @@
         {
           "id": "4",
           "title": "Learn \u2014 wire format",
-          "body": "Pick one chunk: note object, choices[0].delta, and whether content or reasoning updated.",
+          "body": "From the live stream, copy one data: line into your notes. Mark which of these it updated:\n1) delta.reasoning\n2) delta.content\n3) finish_reason\n\nMatch it to the sample in \u201cStreaming.\u201d Your Phase 1 client will concatenate delta.content and ignore the rest when drawing the bubble.",
           "why": "Your Phase 1 client will concatenate delta fields.",
           "links": [
             {
               "label": "Phase 0 API",
+              "path": "docs/guides/phase0.md"
+            },
+            {
+              "label": "Chapter: streaming",
               "path": "docs/guides/phase0.md"
             }
           ],
@@ -360,16 +760,16 @@
         {
           "id": "5",
           "title": "Exercise \u2014 measure TTFT",
-          "body": "Run the timed curl. Fill TTFT into examples/day03-streaming.txt (next step) and in your journal add one paragraph: the TTFT number, whether the first chunk was reasoning or content, and why that matters for a chat UI.",
-          "why": "First chunk may be reasoning-only on LFM3\u2014note that in your metric.",
+          "body": "The number printed is seconds until the first byte (curl\u2019s time_starttransfer). That is your time-to-first-token stand-in.\n\nWrite it in examples/day03-streaming.txt on the next step, and one journal paragraph: the number, whether you expect the first chunk to be reasoning or content on LFM3, and why a chat UI cares.",
+          "why": "On LFM3 the first byte is often reasoning, so a fast TTFT can still mean a blank chat bubble.",
           "commands": [
-            "time ( curl -N -s http://127.0.0.1:11434/v1/chat/completions \\",
+            "curl -s -o /dev/null -w \"seconds_until_first_byte %{time_starttransfer}\\n\" \\",
             "  -H \"Content-Type: application/json\" \\",
             "  -d '{\"model\":\"lfm3\",\"messages\":[{\"role\":\"user\",\"content\":\"Say OK.\"}],\"stream\":true}' \\",
-            "  | head -1 > /dev/null )"
+            "  http://127.0.0.1:11434/v1/chat/completions"
           ],
-          "outcome": "You record one TTFT number in journal and in day03 file.",
-          "journalGuide": "Time to first token (TTFT) is the delay until the first data: chunk arrives over the wire. Users perceive \u201cspeed\u201d from TTFT more than total time to finish a long answer. SLO dashboards often track TTFT separately from total latency.\n\nOn LFM3 the first chunks may be delta.reasoning, not user-visible delta.content. That means TTFT can look \u201cfast\u201d while the user still waits for readable text\u2014product teams need to decide whether to show reasoning, hide it, or show a spinner until content starts.\n\nRecord TTFT in two places: a durable examples/day03-streaming.txt (artifact) and your journal (interpretation). Numbers without interpretation do not survive a week.",
+          "outcome": "You have one number in seconds for time to first byte, written down.",
+          "journalGuide": "The number from curl is seconds until the first byte (time_starttransfer). That is your stand-in for time to first token: delay until the first data: chunk. Users perceive speed from that delay more than from the time until the stream finishes. SLO dashboards often track TTFT separately from total latency.\n\nOn LFM3 the first chunks may be delta.reasoning, not user-visible delta.content. That means TTFT can look \u201cfast\u201d while the user still waits for readable text\u2014product teams need to decide whether to show reasoning, hide it, or show a spinner until content starts.\n\nRecord TTFT in two places: a durable examples/day03-streaming.txt (artifact) and your journal (interpretation). Numbers without interpretation do not survive a week.",
           "links": [
             {
               "label": "Journal",
@@ -435,7 +835,8 @@
         "stream": "true",
         "curlFlag": "-N (no buffer)",
         "artifact": "examples/day03-streaming.txt"
-      }
+      },
+      "guide": "docs/guides/phase0.md"
     },
     {
       "id": "day-4",
@@ -444,8 +845,9 @@
       "phase": 0,
       "phaseLabel": "Bootstrap",
       "timeBoxMinutes": 30,
-      "summary": "Steer the same model with system prompts and temperature\u2014support bot vs coach.",
+      "summary": "Ask the same question twice: a strict low-temperature bot and a warmer coach.",
       "resources": [
+        "phase0",
         "runtime",
         "daily"
       ],
@@ -463,15 +865,21 @@
         {
           "id": "2",
           "title": "Learn \u2014 system + user roles",
-          "body": "System sets policy; user carries the task. Both live in messages[].",
+          "body": "Both profiles use the same user question. Only the policy changes.\n\nsystem \u2014 how to answer (length, tone, format)\nuser \u2014 what to answer\n\ntemperature 0 asks for a steadier wording. temperature 1 allows more variation and usually more tokens.\n\nWrite one system line you could reuse, 20 words or fewer, such as \u201cReply in at most 15 words. No preamble.\u201d Read \u201cSteering without a new model\u201d if the split between roles is unclear.",
           "why": "Misplacing instructions in user text weakens control.",
           "links": [
             {
               "label": "Phase 0 API",
               "path": "docs/guides/phase0.md"
+            },
+            {
+              "label": "Chapter: steering",
+              "path": "docs/guides/phase0.md"
             }
           ],
-          "outcome": "You can write a one-line system rule for \u201cJSON only\u201d or \u201cmax 15 words\u201d."
+          "outcome": "You can write a one-line system rule for \u201cJSON only\u201d or \u201cmax 15 words\u201d.",
+          "figure": "docs/guides/images/steering.svg",
+          "figureAlt": "Same question, two policies: a short bot and a warmer coach."
         },
         {
           "id": "3",
@@ -543,7 +951,8 @@
         "endpoint": "POST /v1/chat/completions",
         "model": "lfm3",
         "artifacts": "examples/day04-terse.json, day04-verbose.json"
-      }
+      },
+      "guide": "docs/guides/phase0.md"
     },
     {
       "id": "day-5",
@@ -552,8 +961,9 @@
       "phase": 0,
       "phaseLabel": "Bootstrap",
       "timeBoxMinutes": 30,
-      "summary": "Feel context limits: baseline vs oversized prompt and why RAG exists.",
+      "summary": "Compare a tiny prompt with an oversized one so the context limit is something you saw.",
       "resources": [
+        "phase0",
         "runtime",
         "daily"
       ],
@@ -562,10 +972,16 @@
           "id": "1",
           "title": "Why Day 5 \u2014 context is a hard budget",
           "durationMinutes": 5,
-          "body": "Scenario: A user attaches a \u201cwhole repo\u201d paste; the model silently drops the middle or errors. Context is finite\u2014measured in tokens.\n\nToday you baseline a small prompt, then stress-test a large one and record behavior.\n\nRun ./server.sh.",
+          "body": "One call has one token budget. It must hold the messages you send and the reply, including reasoning. This lab uses about 4096 tokens as the working cap.\n\nThe stress test is built so you can see a miss: the question is at the start, junk fills the middle, and the word MAGICEND is only at the end. If the model does not say MAGICEND, it did not reliably see the tail.\n\nRead \u201cThe context budget,\u201d then run ./server.sh. A small control call comes before the long one.",
           "why": "Phase 2 RAG sends chunks instead of megabytes in one shot.",
           "commands": [
             "./server.sh"
+          ],
+          "links": [
+            {
+              "label": "Chapter: context budget",
+              "path": "docs/guides/phase0.md"
+            }
           ]
         },
         {
@@ -584,7 +1000,7 @@
         {
           "id": "3",
           "title": "Exercise \u2014 build oversized prompt",
-          "body": "Generate ~12k characters of filler plus a question at the start: \u201cWhat is the magic word at the end?\u201d (word only at end).",
+          "body": "The file is three parts on purpose:\n1) A question at the start: what is the magic word at the end?\n2) The word \u201cword\u201d repeated, so the middle is long and useless\n3) The suffix MAGICEND, which is the right answer only if the model still sees the tail\n\nCheck the byte size with wc. You are not trying to craft a good prompt. You are trying to overflow a bad one.",
           "why": "Tests whether early instructions survive (often they do not).",
           "commands": [
             "mkdir -p examples",
@@ -635,7 +1051,7 @@
         {
           "id": "6",
           "title": "Reflect \u2014 mitigation",
-          "body": "Write one paragraph in your journal: How do chunking + retrieval fix \u201cwhole document in one prompt\u201d? Name what still fits in the context window after retrieval (system + chunks + user question + answer).",
+          "body": "Write one paragraph: chunking and retrieval send a few relevant pieces instead of the whole document. Name what still has to fit in the same budget afterward: system rules, the chunks you kept, the question, and the answer.\n\nThe chapter section \u201cThe context budget\u201d states the same idea in short form. Use your Day 5 result as the example.",
           "why": "Connects bootstrap pain to curriculum arc.",
           "outcome": "You can explain RAG\u2019s purpose without buzzwords.",
           "journalGuide": "RAG is not a buzzword\u2014it is an engineering response to context limits. Instead of one megabyte user message, you chunk documents, embed chunks, retrieve top-k relevant pieces, and inject only those into messages[]. The model then answers from a small evidence set.\n\nChunking strategy (size, overlap), embedding model choice, and retrieval quality all matter as much as the LLM call. Phase 2 walks those pieces; today you journal the motivation so Phase 2 feels necessary, not optional.",
@@ -643,6 +1059,10 @@
             {
               "label": "Journal",
               "path": "learner/journal/PROGRESS.md"
+            },
+            {
+              "label": "Chapter: context budget",
+              "path": "docs/guides/phase0.md"
             }
           ]
         },
@@ -658,7 +1078,8 @@
         "model": "lfm3",
         "workingContext": "~4096 tokens (curriculum)",
         "artifacts": "examples/day05-long-prompt.txt"
-      }
+      },
+      "guide": "docs/guides/phase0.md"
     },
     {
       "id": "day-6",
@@ -667,8 +1088,9 @@
       "phase": 0,
       "phaseLabel": "Bootstrap",
       "timeBoxMinutes": 30,
-      "summary": "Pick a capstone and map Phase 1\u20132 skills using ROADMAP Decide first.",
+      "summary": "Choose a capstone and name the first technique you will try before adding more tools.",
       "resources": [
+        "phase0",
         "daily",
         "open"
       ],
@@ -689,7 +1111,7 @@
         {
           "id": "2",
           "title": "Exercise \u2014 Decide first table",
-          "body": "In your journal, write: \u201cDecide first: for [your capstone need], I will try [column/technique] first because \u2026\u201d (2\u20133 sentences of reasoning).",
+          "body": "In ROADMAP, the \u201cDecide first\u201d table says what to try before fine-tuning or a free-roaming agent:\n1) Facts from docs \u2192 retrieval\n2) Reliable JSON \u2192 a schema, then a prompt example\n3) A new capability \u2192 a tool\n4) A business process \u2192 a workflow\n5) IDE behavior \u2192 rules and skills\n\nIn the journal write: \u201cDecide first: for [your need], I will try [that row] first because \u2026\u201d in 2\u20133 sentences.",
           "why": "Teams retrieve before fine-tune; workflows before full autonomy.",
           "links": [
             {
@@ -707,7 +1129,7 @@
         {
           "id": "3",
           "title": "Exercise \u2014 pick capstone track",
-          "body": "Set your journal header (top of today\u2019s entry) to: \u201cCapstone track: [Dev platform | Knowledge product | Automation | Learning lab]\u201d. Add one sentence why this track fits your real work or curiosity.",
+          "body": "Pick one track and put it in the journal header: \u201cCapstone track: \u2026\u201d.\n1) Dev platform \u2014 tools, editor, codegen\n2) Knowledge product \u2014 search, citations, retrieval\n3) Automation \u2014 workflows, scheduled jobs, integrations\n4) Learning lab \u2014 extend this repo and write up what you try\n\nAdd one sentence on why it fits work you actually do or want to do. You can change tracks at a phase boundary. You cannot learn well with no track.",
           "why": "Default choice beats endless debate.",
           "outcome": "One track name written in journal header.",
           "journalGuide": "A capstone track is a label for scope, not a contract. Dev platform = tools, IDE, codegen; Knowledge product = RAG, citations, search; Automation = workflows, cron, integrations; Learning lab = extend this repo and document experiments.\n\nPick one for the next weeks\u2014you can change it at Phase boundaries, but indecision wastes daily 30-minute blocks. Write the track name where future-you will see it (journal header or PROGRESS table).",
@@ -760,7 +1182,8 @@
       "reference": {
         "artifact": "journal capstone bullets",
         "guide": "docs/guides/ROADMAP.md"
-      }
+      },
+      "guide": "docs/guides/phase0.md"
     },
     {
       "id": "day-7",
@@ -769,8 +1192,9 @@
       "phase": 0,
       "phaseLabel": "Bootstrap",
       "timeBoxMinutes": 30,
-      "summary": "Timed demo of batch + stream; self-score Phase 0 exit rubric.",
+      "summary": "Demo a batch call and a stream from memory, then score the Phase 0 checklist.",
       "resources": [
+        "phase0",
         "runtime",
         "daily"
       ],
@@ -813,7 +1237,7 @@
         {
           "id": "4",
           "title": "Self-check \u2014 exit rubric",
-          "body": "Say each term aloud once, then in your journal create a table:\nConcept | yes / partial / no | one-line proof (what you would demo)\nRows: token, context window, stream vs batch, base URL, model id.\nIf any partial/no, note which day to redo.",
+          "body": "Close the chapter. Say each term once out loud, then make a journal table:\nConcept | yes / partial / no | one-line proof\nRows: token, context window, stream vs batch, base URL, model id.\n\nPartial or no means redo that day before Day 8. The bar is in \u201cWhat Day 7 should sound like.\u201d",
           "why": "Matches phase0 exit criteria.",
           "links": [
             {
@@ -823,6 +1247,10 @@
             {
               "label": "Journal",
               "path": "learner/journal/PROGRESS.md"
+            },
+            {
+              "label": "Chapter: Day 7 bar",
+              "path": "docs/guides/phase0.md"
             }
           ],
           "outcome": "At least four yes; re-study any partial.",
@@ -868,7 +1296,8 @@
         "apiBase": "http://127.0.0.1:11434/v1",
         "model": "lfm3",
         "nextPhase": "Phase 1 \u2014 Day 8 GGUF & quantization"
-      }
+      },
+      "guide": "docs/guides/phase0.md"
     }
   ]
 }

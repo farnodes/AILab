@@ -126,7 +126,7 @@ if (!path || path.includes("..")) {
   loadDocWithProgress(path)
     .then(({ text, progress, curriculum, isDaily }) => {
       const content = document.getElementById("content");
-      content.innerHTML = renderMarkdown(text);
+      content.innerHTML = renderMarkdown(text, path);
       if (isDaily) {
         injectProgressColumns(content, progress, curriculum);
         document.addEventListener("visibilitychange", () => {
